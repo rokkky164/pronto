@@ -29,7 +29,6 @@ from rest_framework.status import (
 from retry import retry
 from google.cloud import storage
 
-from exam.settings import RESULT_GENERATE_BUFFER_TIME
 from .constants import (
     BADGES_DATA, INDEX_BADGES, SUCCESS, ERROR, MAIL_NOTIFICATION_RETRIES, MAIL_NOTIFICATION_RETRY_DELAY,
     INSUFFICIENT_PERMISSIONS,
@@ -268,10 +267,6 @@ def get_image_path(image=None):
 # Bulk upload
 def check_for_duplicate_usernames(usernames):
     return len(usernames) != len(set(usernames))
-
-
-def remove_qp_cache_schedule_time(valid_to: datetime, duration: int) -> datetime:
-    return valid_to + timedelta(minutes=duration + RESULT_GENERATE_BUFFER_TIME)
 
 
 def get_unique_mailgun_message_id(module: str, hostname: str = None) -> str:

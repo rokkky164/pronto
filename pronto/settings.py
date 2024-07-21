@@ -11,7 +11,20 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
 from pathlib import Path
+import environ
+import sentry_sdk
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+from celery.schedules import crontab
+from django.utils import timezone
+from sentry_sdk.integrations.django import DjangoIntegration
 
+
+env = environ.Env(
+    # set casting, default value
+    DEBUG=(bool, False),
+    DEBUG_SQL=(bool, False),
+    ENVIRONMENT=(str, 'local'),
+)
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -37,6 +50,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # developed apps
+    'accounts',
+    'authorization',
+    'common',
+    'utils'
 ]
 
 MIDDLEWARE = [
@@ -75,11 +93,13 @@ WSGI_APPLICATION = 'pronto.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'pronto',
+        'USER': 'postgres',
+        'PASSWORD': 'pwd',
+        'HOST': 'localhost'
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
@@ -123,3 +143,12 @@ STATIC_URL = '/static/'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+DEFAULT_FROM_EMAIL = "hansdah.roshan@gmail.com"
+SERVER_EMAIL = "hansdah.roshan@gmail.com"
+BACK_END_HOST = env('BACK_END_HOST', default='https://.tradepronto.com/api')
+URL_PREFIX = env('URL_PREFIX', default='https://')
+RESEND_NOTIFICATION_EMAIL_TIME = int(env('RESEND_NOTIFICATION_EMAIL_TIME', default=5))  # Minutes
+DELETE_USER_ACCOUNT_DAYS = int(env('DELETE_USER_ACCOUNT_DAYS', default=7))  # Minutes
+DELETE_ACCOUNT_REQUEST_HOURS = int(env('DELETE_ACCOUNT_REQUEST_HOURS', default=1)) # Hours

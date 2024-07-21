@@ -16,13 +16,14 @@ USER_BASENAME = 'user'
 
 USER_EXAM_TYPE_URL_NAME = 'user-exam-type-list'
 
+COMPANY_INFORMATION_URL_NAME = 'company-information'
+ACCOUNT_MANAGER_DETAILS_URL_NAME = 'account-manager-details'
 LOGIN_URL_NAME = 'login'
 TOKEN_REFRESH_URL_NAME = 'token_refresh'
 REGISTER_URL_NAME = 'register'
 ACCOUNT_VERIFY_URL_NAME = 'account-verify'
 RESEND_VERIFICATION_CODE_URL_NAME = 'resend-verification-code'
 SEND_MAIL_FOR_REGISTRATION = 'send-mail-for-registration'
-FETCH_RANDOM_USERNAME_PASSWORD = 'fetch-random-username-pwd'
 
 USER_BY_EMAIL_URL = 'user-by-email'
 USER_BY_EMAIL_URL_NAME = 'user-by-email'

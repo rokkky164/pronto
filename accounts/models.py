@@ -7,7 +7,7 @@ from django.core.validators import (
 )
 from django.db import models
 from django.db.models import QuerySet, Q, Model, OneToOneField, CASCADE, ManyToManyField, ForeignKey, SET_NULL, \
-    TextField, BooleanField, DateTimeField, UUIDField
+    CharField, TextField, BooleanField, DateTimeField, UUIDField, TextChoices, EmailField, FileField
 from django.utils.translation import gettext_lazy as _
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.fields import JSONField
@@ -20,9 +20,8 @@ from accounts.constants import (
     LAST_NAME_MAXIMUM_LENGTH_MESSAGE,
     LAST_NAME_VALIDATION_MESSAGE
 )
-from accounts.utils import user_directory_path
-from accounts.validators import UsernameValidator
-from authorization.default_role_list import (
+from accounts.utils import user_directory_path, UsernameValidator, verify_document_mime_type, verify_document_size
+from authorization.role_list import (
     BUYER,
     SUPPLIER,
     DISTRIBUTOR,
@@ -176,7 +175,6 @@ class CompanyInformation(Model):
     product_categories = ArrayField(CharField(), null=True, default=list)
     vat_payer = CharField(_('Vat Payer'), max_length=100)
     legal_address = ForeignKey(Address, on_delete=CASCADE, related_name='legal_address')
-    district = ForeignKey(District, on_delete=CASCADE)
 
     def __str__(self):
         return f"{self.pk}: {self.name}"
@@ -185,7 +183,7 @@ class CompanyInformation(Model):
 class AccountManagerDetails(Model):
     name = CharField(_('Account Manager Name'), max_length=100)
     title = CharField(_('Title'), max_length=100)
-    department = CharField(_('Title'), max_length=100)
+    department = CharField(_('Department'), max_length=100)
     email = EmailField(verbose_name=_('Email'), max_length=100)
     phone = CharField(_('Mobile Number'), max_length=14, blank=True, null=True)   
 
@@ -206,10 +204,10 @@ class CertificateDocument(Model):
         APPROVED = 'A', _('Approved')
         REJECTED = 'R', _('Rejected')
 
-    name = CharField(_('Name'), choices=Name.choices, max_length=DOCUMENT_NAME_MAX_LENGTH)
-    document_no = CharField(_('Document Number'), max_length=DOCUMENT_NO_MAX_LENGTH, null=True, blank=True)
+    name = CharField(_('Name'), choices=Name.choices, max_length=50)
+    document_no = CharField(_('Document Number'), max_length=50, null=True, blank=True)
     document = FileField(validators=[verify_document_mime_type, verify_document_size], null=True, blank=True)
-    status = CharField(_('Status'), choices=Status.choices, max_length=KYC_STATUS_MAX_LENGTH)
+    status = CharField(_('Status'), choices=Status.choices, max_length=50)
     
     def __str__(self):
         return f"{self.pk}: {self.name}"

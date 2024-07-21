@@ -23,23 +23,23 @@ from accounts.constants import (
     INVALID_MOBILE_NUMBER, INACTIVATED_ACCOUNT,
     NEW_PASSWORD_SAME_AS_CURRENT_PASSWORD, EMAIL_IS_REGISTERED, NUMBER_IS_REGISTERED
 )
-from accounts.db_interactors import (
-    get_user_by_email,
-    get_password_reset_request_by_code
-)
-from accounts.models import User, Address, CompanyInformation, AccountManagerDetails, DeleteUserAccountRequest
-from accounts.services import (
-    create_user_env_details_service,
-    create_user_service,
-    change_password_service,
-    create_password_reset_request_service,
-    update_password_reset_request_service,
-    update_school_service, update_user_service,
-    create_change_email_request_service, delete_user_account_request_service, send_delete_account_request_service
-)
+# from accounts.db_interactors import (
+#     get_user_by_email,
+#     get_password_reset_request_by_code
+# )
+from accounts.models import User, Address, CompanyInformation, AccountManagerDetails, CertificateDocument, DeleteUserAccountRequest
+# from accounts.services import (
+#     create_user_env_details_service,
+#     create_user_service,
+#     change_password_service,
+#     create_password_reset_request_service,
+#     update_password_reset_request_service,
+#     update_school_service, update_user_service,
+#     create_change_email_request_service, delete_user_account_request_service, send_delete_account_request_service
+# )
 from accounts.tasks import check_and_update_user_delete_request_task
-from accounts.validators import match_re
-from authorization.default_role_list import (
+from accounts.utils import match_re
+from authorization.role_list import (
     BUYER, SUPPLIER, DISTRIBUTOR, ADMIN, TRADEPRONTO_ADMIN
 )
 from authorization.models import Role, UserSession, UserEnvironmentDetails
@@ -47,7 +47,7 @@ from authorization.serializers import RoleListSerializer
 from common.location.models import City, State, Country
 from common.location.serializers import CitySerializer, StateSerializer, CountrySerializer
 from utils.helpers import get_hostname_from_request
-from utils.interactors import get_record_by_id, get_single_record_by_filters, db_create_record, get_record_by_filters, \
+from utils.db_interactors import get_record_by_id, get_single_record_by_filters, db_create_record, get_record_by_filters, \
     db_filter_query_set
 
 logger = getLogger(__name__)
@@ -79,30 +79,27 @@ class CertificateDocumentSerializer(ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
         required=False,
-        validators=[UniqueValidator(queryset=User.objects.filter(is_deleted=False), message=EMAIL_IS_REGISTERED)]
+        validators=[UniqueValidator(queryset=User.objects.filter(), message=EMAIL_IS_REGISTERED)]
     )
     username = serializers.CharField(
         required=True,
-        validators=[UniqueValidator(queryset=User.objects.filter(is_deleted=False), message=USERNAME_IS_REGISTERED)]
+        validators=[UniqueValidator(queryset=User.objects.filter(), message=USERNAME_IS_REGISTERED)]
     )
     mobile_number = serializers.CharField(
         required=False,
-        validators=[UniqueValidator(queryset=User.objects.filter(is_deleted=False), message=NUMBER_IS_REGISTERED)]
+        validators=[UniqueValidator(queryset=User.objects.filter(), message=NUMBER_IS_REGISTERED)]
     )
     role = serializers.SlugRelatedField(
         slug_field='name',
         required=True,
         queryset=Role.objects.filter(
-            name__in=[TEACHER['name'], STUDENT['name'], PARENT['name'], HR_PERSONNEL['name'],
-                      EXTERNAL_CANDIDATE['name']]),
+            name__in=[BUYER['name'], SUPPLIER['name'], DISTRIBUTOR['name'], ADMIN['name'],
+                      TRADEPRONTO_ADMIN['name']]),
         error_messages={'does_not_exist': PROVIDED_ROLE_DOES_NOT_EXIST}
     )
 
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     gender = serializers.ChoiceField(choices=User.Gender.choices, required=False)
-    bid = serializers.UUIDField(required=False)
-    grade = serializers.PrimaryKeyRelatedField(required=False, allow_null=True, queryset=Grade.objects.all())
-    is_corporate = serializers.BooleanField(default=False)
     iid = serializers.UUIDField(required=False)
  
     class Meta:
@@ -373,7 +370,6 @@ class UserDetailSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
     address = UserAddressSerializer()
 
-    grade = GradeSerializer(source='student_profile.grade', read_only=True)
     section = serializers.CharField(source='student_profile.section.name', read_only=True)
     fathers_name = serializers.CharField(source='student_profile.fathers_name', read_only=True)
     mothers_name = serializers.CharField(source='student_profile.mothers_name', read_only=True)
@@ -532,180 +528,6 @@ class UserEnvironmentDetailsSerializer(serializers.ModelSerializer):
         return status, user_env_details
 
 
-class UserUpdateSerializer(serializers.ModelSerializer):
-    grade = serializers.CharField(required=False)
-    section = serializers.CharField(required=False)
-    fathers_name = serializers.CharField(required=False, max_length=100)
-    mothers_name = serializers.CharField(required=False, max_length=100)
-    guardian_contact_number = serializers.CharField(required=False, max_length=14)
-    school = serializers.IntegerField(required=False)
-    daily_challenge = serializers.BooleanField(required=False)
-
-    qualification = serializers.ChoiceField(required=False, choices=Teacher.Qualification.choices)
-    experience = serializers.IntegerField(required=False)
-    current_student_count = serializers.IntegerField(required=False)
-    total_student_count = serializers.IntegerField(required=False)
-    area_of_expertise = serializers.CharField(required=False)
-    institute = serializers.PrimaryKeyRelatedField(
-        required=False, queryset=Institute.objects.filter(status=Institute.STATUS.ACTIVE)
-    )
-
-    address = serializers.JSONField(required=False)
-    educations = serializers.ListField(required=False)
-
-    departments = PrimaryKeyRelatedField(
-        required=False,
-        queryset=Department.objects.filter(status=Department.Status.ACTIVE),
-        many=True
-    )
-
-    class Meta:
-        model = User
-        fields = (
-            'id', 'first_name', 'last_name', 'gender', 'photo', 'avatar', 'thumbnail', 'dob', 'mobile_number', 'grade',
-            'section', 'fathers_name', 'mothers_name', 'guardian_contact_number', 'school', 'qualification',
-            'experience', 'current_student_count', 'total_student_count', 'area_of_expertise', 'institute',
-            'address', 'role', 'departments', 'is_active', 'is_deleted', 'daily_challenge', 'educations'
-        )
-
-    def validate_grade(self, value):
-        status, grade = get_single_record_by_filters(model=Grade, filters={'name': value})
-        if not status:
-            raise serializers.ValidationError(INVALID_GRADE)
-        self.context.update({'grade': grade})
-        return grade
-
-    def validate_section(self, value):
-        status, section = get_single_record_by_filters(model=Section, filters={'name': value})
-        if not status:
-            raise serializers.ValidationError(INVALID_SECTION)
-        self.context.update({'section': section})
-        return section
-
-    @staticmethod
-    def validate_mobile_number(value):
-        if not match_re('mobile_number', value):
-            raise serializers.ValidationError(INVALID_MOBILE_NUMBER)
-        return value
-
-    def validate_guardian_contact_number(self, value):
-        if not match_re('mobile_number', value):
-            raise serializers.ValidationError(INVALID_MOBILE_NUMBER)
-        return value
-
-    def validate_school(self, value):
-        school = get_school_by_id(value)
-        user = self.instance
-        if not school:
-            raise serializers.ValidationError(INVALID_SCHOOL_PROVIDED)
-
-        # if school.created_by != user and not school.is_verified:
-        #     raise serializers.ValidationError(INVALID_SCHOOL_PROVIDED)
-
-        return school
-
-    def validate(self, attrs):
-        address = attrs.get('address', None)
-        educations = attrs.get('educations', None)
-        user = self.context.get('user')
-        if address:
-            if hasattr(user, 'address'):
-                new_address = UserAddressUpdateSerializer(
-                    user.address, data=address, partial=True, context={'user': user}
-                )
-            else:
-                address.update({'user': user.id})
-                new_address = UserAddressCreateSerializer(data=address)
-
-            if not new_address.is_valid():
-                raise serializers.ValidationError({'address': new_address.errors})
-            attrs['address'] = new_address.validated_data
-
-        if educations:
-            education_list = []
-            for i, edu in enumerate(educations):
-                serializer = ValidateEducationSerializer(data=edu)
-                if not serializer.is_valid():
-                    raise serializers.ValidationError({i+1: serializer.errors})
-                education_list.append(serializer.validated_data)
-            attrs['educations'] = education_list
-        elif not educations and educations is not None:
-            attrs['educations'] = []
-        return attrs
-
-    def update(self, instance, validated_data):
-        return update_user_service(
-            instance=instance,
-            validated_data=validated_data,
-            educations=validated_data['educations'] if 'educations' in validated_data else None)
-
-
-class UserShortDetailSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = (
-            'id', 'username', 'first_name', 'last_name', 'email', 'photo', 'avatar', 'thumbnail', 'role', 'status',
-            'institute', 'departments', 'mobile_number', 'is_active', 'is_deleted', 'date_joined', 'educations'
-        )
-
-    role = RoleListSerializer()
-    institute = InstituteDetailSerializer()
-    departments = DepartmentSerializer(source='employee.departments', many=True)
-    photo = serializers.SerializerMethodField()
-    educations = SerializerMethodField()
-
-    @staticmethod
-    def get_educations(obj):
-        if hasattr(obj, 'employee'):
-            educations = db_filter_query_set(
-                query_set=obj.employee.educations, filters={'status': Education.Status.ACTIVE})[1]
-            return EducationDetailsSerializer(educations, many=True).data
-        return []
-
-    def get_photo(self, obj):
-        return f'/media/{obj.photo}' if obj.photo else None
-
-
-class EmailChangeRequestSerializer(serializers.Serializer):
-    new_email = serializers.EmailField(required=True)
-
-    def update(self, instance, validated_data):
-        user = self.context.get('user')
-        return create_change_email_request_service(user=user, new_email=validated_data.get('new_email'))
-
-
-class ValidateUserDataSerializer(serializers.ModelSerializer):
-    role = serializers.SlugRelatedField(
-        slug_field='label',
-        required=True,
-        queryset=Role.objects.filter(
-            label__in=[BRANCH_ADMIN['label'], CORPORATE_ADMIN['label'], SUBJECT_MATTER_EXPERT['label'],
-                       HR_PERSONNEL['label'], EXTERNAL_CANDIDATE['label'], INTERNAL_CANDIDATE['label'],
-                       HR_HEAD['label']]),
-        error_messages={'does_not_exist': PROVIDED_ROLE_DOES_NOT_EXIST}
-    )
-
-    def validate(self, attrs):
-        filter_dict ={
-            'user__email': attrs['email'],
-            'user__is_deleted' : False
-        }
-        if attrs.get('role') and attrs['role'].label in ['External Candidate', 'Internal Candidate']:
-            filter_dict['institute'] = self.context.get('institute')
-        if attrs['mobile_number']:
-            filter_dict['user__mobile_number'] = attrs['mobile_number']
-        status, institute_user = get_record_by_filters(model=InstituteUserMap, filters=filter_dict)
-        if not status:
-            return ValidationError(institute_user)
-        if institute_user:
-            raise ValidationError(INSTITTUTE_USER_AVAILABLE)
-        return attrs
-
-    class Meta:
-        model = User
-        fields = ['first_name', 'last_name', 'email', 'mobile_number', 'role']
-
-
 class UserNameSerializer(ModelSerializer):
     photo = serializers.SerializerMethodField()
 
@@ -719,7 +541,6 @@ class UserNameSerializer(ModelSerializer):
 
 class LoginDetailSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
-    grade = GradeSerializer(source='student_profile.grade', read_only=True)
     section = serializers.CharField(source='student_profile.section.name', read_only=True)
     total_gems = serializers.IntegerField(source='student_profile.total_gems', read_only=True, default=0)
     rank = serializers.IntegerField(source='student_profile.rank', read_only=True)
@@ -740,12 +561,6 @@ class LoginDetailSerializer(serializers.ModelSerializer):
         if institutes:
             institute = institutes.last()
             return {'id': institute.id, 'name': institute.name, 'is_editable': False}
-        return None
-
-    @staticmethod
-    def get_badge(obj):
-        if obj.role and obj.role.name == STUDENT['name'] and hasattr(obj, 'student_profile'):
-            return get_badge_by_gems(gems=obj.student_profile.total_gems)[-1]
         return None
 
     class Meta:

@@ -7,8 +7,6 @@ from django.utils.timezone import now
 from django_filters import rest_framework
 from django_filters.rest_framework import DjangoFilterBackend
 
-from drf_yasg import openapi
-from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, views, viewsets, mixins
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -55,44 +53,33 @@ from accounts.constants import (
     DELETE_USER_ACCOUNT_REQUEST_SUCCESS, SEND_DELETE_REQUEST_EMAIl_URL, SEND_DELETE_REQUEST_EMAIl_URL_NAME,
     SEND_DELETE_REQUEST_EMAIL_SUCCESS
 )
-from accounts.filtersets import UserFilterSet
-from accounts.helpers import get_device_type
-from accounts.interactors import (
-    get_user_by_email,
-    get_pin_codes_for_school,
-    db_get_verification_request,
-    get_student_grade_by_user,
-    get_user_exam_type, db_get_user_list,
-    get_all_students
+# from accounts.filtersets import UserFilterSet
+from accounts.utils import get_device_type
+# from accounts.db_interactors import (
+#     db_get_verification_request,
+#     db_get_user_list,
+# )
+from accounts.models import (
+    User, DeleteUserAccountRequest, CompanyInformation, AccountManagerDetails
 )
-from accounts.models import User, School, DeleteUserAccountRequest
-from accounts.permissions import UserPermission, CanChangeEmail, IsActive, SchoolPermission, HRPermission
-from accounts.serializers import EmailChangeRequestSerializer, StudentPlayStatusSerializer, LoginDetailSerializer, \
-    ValidateDeleteAccountRequestSerializer, SendDeleteRequestSerializer
+from accounts.permissions import UserPermission, CanChangeEmail, IsActive
 from accounts.serializers import (
+    CompanyInformationSerializer,
+    AccountManagerDetailsSerializer,
     RegisterSerializer,
     PasswordChangeSerializer,
     PasswordResetSerializer,
     PasswordVerifySerializer,
-    UserDetailSerializer,
     CustomLoginSerializer,
     CustomTokenRefreshSerializer,
-    UserUpdateSerializer,
-    UserShortDetailSerializer,
     UserSessionSerializer,
     UserEnvironmentDetailsSerializer
 )
-from accounts.services import get_avatar_service, verify_request_and_change_email_service, \
-    send_mail_after_registration_service, delete_user_account_request_service
 from accounts.tasks import resend_verification_code, initiate_account_verification, set_user_environment_session
-from accounts.utils import generate_username, generate_strong_password
-from authorization.default_role_list import HR_PERSONNEL, EXTERNAL_CANDIDATE
-from authorization.interactors import get_role_by_name
-from authorization.interactors import get_verification_code_by_user_id
-from batch.services import add_uses_to_batch_by_bid_service, add_user_to_institute_by_iid_service
-from common.exam_type.serializers import ExamTypeSerializer
-from common.grade.serializers import GradeSerializer
-from exam.services import assign_exam_by_eid_service
+
+from authorization.role_list import BUYER, SUPPLIER, DISTRIBUTOR, ADMIN, TRADEPRONTO_ADMIN
+from authorization.db_interactors import get_role_by_name, get_verification_code_by_user_id
+
 from utils.helpers import create_response, load_request_json_data, get_hostname_from_request
 from utils.db_interactors import (
     get_record_by_id, db_update_instance, db_get_empty_queryset, db_get_object_list, get_record_by_filters,
@@ -120,26 +107,60 @@ class CompanyInformationView(generics.CreateAPIView):
         serializer = self.serializer_class(data=request_data, context={'host_name': hostname})
         if serializer.is_valid():
             bid = request.data.get('bid')
-            iid = request.data.get('iid')
-            is_corporate = request.data.get('is_corporate', False)
-            open_batch_invitation = request.data.get('open_batch_invitation', False)
 
             status, create_user = serializer.save()
             serializer.validated_data['role'] = request.data.get('role')
-            if serializer.validated_data.get('grade'):
-                serializer.validated_data['grade'] = serializer.validated_data['grade'].id
+
             if not status:
                 set_rollback(True)
                 return create_response(message=USER_CREATION_FAILED, data=create_user)
 
-            if bid:
+            if iid and not request_data.get('role') == EXTERNAL_CANDIDATE['name']:
                 status, response = \
-                    add_uses_to_batch_by_bid_service(
-                        bid=bid, user=create_user, is_corporate=is_corporate, hostname=hostname,
-                        open_batch_invitation=open_batch_invitation)
+                    add_user_to_institute_by_iid_service(
+                        iid=iid, bid=bid, user=create_user, is_corporate=is_corporate, hostname=hostname)
                 if not status:
                     set_rollback(True)
                     return create_response(message=USER_CREATION_FAILED, data=response)
+
+            if eid:
+                status, response = assign_exam_by_eid_service(eid=eid, user=create_user, hostname=hostname)
+                if not status:
+                    set_rollback(True)
+                    return create_response(message=USER_CREATION_FAILED, data=response)
+
+            send_mail_after_registration_service(
+                user=create_user, hostname=hostname, password=request_data.get('password'), bid=bid)
+            return create_response(success=True, message=USER_CREATION_SUCCESS, data=serializer.validated_data)
+        else:
+            return create_response(message=USER_CREATION_FAILED, data=serializer.errors)
+
+
+class AccountManagerDetailsView(generics.CreateAPIView):
+    queryset = AccountManagerDetails.objects.all()
+    permission_classes = (AllowAny,)
+    authentication_classes = []
+    serializer_class = AccountManagerDetailsSerializer
+
+    @atomic()
+    def create(self, request, *args, **kwargs):
+        eid = request.data.get('eid')
+        request_data = request.data.copy()
+        request_data = load_request_json_data(request_data=request_data, json_key_list=['educations',])
+
+        hostname = request.headers.get('origin', None)
+        hostname = hostname.split('//')[-1] if hostname else request.get_host()
+        serializer = self.serializer_class(data=request_data, context={'host_name': hostname})
+        if serializer.is_valid():
+            bid = request.data.get('bid')
+
+            status, create_user = serializer.save()
+            serializer.validated_data['role'] = request.data.get('role')
+
+            if not status:
+                set_rollback(True)
+                return create_response(message=USER_CREATION_FAILED, data=create_user)
+
             if iid and not request_data.get('role') == EXTERNAL_CANDIDATE['name']:
                 status, response = \
                     add_user_to_institute_by_iid_service(
@@ -317,7 +338,7 @@ class UserViewSet(
     pagination_class = StandardResultsSetPagination
     permission_classes = [IsAuthenticated, UserPermission, ]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_class = UserFilterSet
+    # filterset_class = UserFilterSet
     ordering_fields = ['first_name', 'id']
     ordering = ['-id']
     search_fields = [
@@ -604,33 +625,3 @@ class ResendVerificationCodeView(views.APIView):
                 return create_response(success=True, message=AUTHENTICATION_CODE_SEND_SUCCESS)
         else:
             return create_response(message=USER_NOT_FOUND_WITH_GIVEN_MAIL_ID)
-
-
-class SendMailForRegistrationView(generics.GenericAPIView):
-    permission_classes = [HRPermission]
-    serializer_class = RegisterSerializer
-
-    def post(self, request, *args, **kwargs):
-        """
-            Create Potential User
-        """
-        request_data = request.data
-        hrpersonnel_role = get_role_by_name(HR_PERSONNEL['name'])
-        if hrpersonnel_role is None:
-            return create_response(success=False, message=PROVIDED_ROLE_DOES_NOT_EXIST)
-        request_data['role'] = hrpersonnel_role.name
-        request_data['username'] = generate_username(
-            request_data.get('first_name', ''),
-            request_data.get('last_name', ''),
-            request_data.get('email', ''),
-        )
-        request_data['password'] = generate_strong_password()
-        request_data['status'] = User.Status.POTENTIAL_USER
-        serializer = self.serializer_class(data=request_data)
-
-        if serializer.is_valid():
-            serializer.save()
-            serializer.validated_data['role'] = request_data.get('role')
-            return create_response(success=True, message=SEND_MAIL_FOR_REGISTRATION_SUCCESS, data=serializer.validated_data)
-        return create_response(message=UNABLE_TO_SEND_MAIL_FOR_REGISTRATION, data=serializer.errors)
-
