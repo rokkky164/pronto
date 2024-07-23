@@ -70,12 +70,13 @@ class AccountManagerDetailsSerializer(ModelSerializer):
     
     class Meta:
         model = AccountManagerDetails
-        fields = ('name', 'title', 'department', 'email', 'phone')
+        fields = ('user', 'title', 'department', 'email', 'phone')
 
     def create(self, validated_data):
         status, account_manager = db_create_record(
             model=AccountManagerDetails,
             data={
+                'user': validated_data['user'],
                 'name': validated_data['name'],
                 'title': validated_data['title'],
                 'department': validated_data['department'],

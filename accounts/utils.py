@@ -77,3 +77,38 @@ def verify_document_mime_type(document):
 
 def verify_document_size(logo):
     check_file_size(file=logo, max_size=KYC_DOCUMENT_MAX_SIZE)
+
+def generate_strong_password():
+    MAX_LEN = 12
+    COMBINED_LIST = DIGITS + UPCASE_CHARACTERS + LOCASE_CHARACTERS + SYMBOLS
+    rand_digit = random.choice(DIGITS)
+    rand_upper = random.choice(UPCASE_CHARACTERS)
+    rand_lower = random.choice(LOCASE_CHARACTERS)
+    rand_symbol = random.choice(SYMBOLS)
+    temp_pass = rand_digit + rand_upper + rand_lower + rand_symbol
+
+    for x in range(MAX_LEN - 4): 
+        temp_pass = temp_pass + random.choice(COMBINED_LIST) 
+        temp_pass_list = array.array('u', temp_pass) 
+        random.shuffle(temp_pass_list) 
+    
+    password = "" 
+    for x in temp_pass_list: 
+        password = password + x
+
+    return password
+
+
+def generate_username(first_name, last_name, email):
+    first_name = first_name.replace(' ', '')
+    last_name = last_name.replace(' ', '')
+    random_no = random.randint(1000, 9999)
+    userdetails_from_email = email.split("@")[0]
+    email_result = re.match("\w+", userdetails_from_email)
+    if email_result:
+        userdetails_from_email = email_result.group()
+    return random.choice([
+        f'{first_name}.{last_name}{random_no}',
+        f'{last_name}.{first_name}{random_no}',
+        f'{userdetails_from_email}{random_no}'
+    ])
