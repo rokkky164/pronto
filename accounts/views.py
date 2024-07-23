@@ -14,8 +14,10 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.viewsets import ViewSet
 
 from accounts.constants import (
-    USER_CREATION_SUCCESS,
-    USER_CREATION_FAILED,
+    COMPANY_INFORMATION_CREATION_SUCCESS,
+    COMPANY_INFORMATION_CREATION_FAILED,
+    ACCOUNT_MANAGER_CREATION_SUCCESS,
+    ACCOUNT_MANAGER_CREATION_FAILED,
     USER_UPDATE_SUCCESS,
     USER_LIST_FETCH_SUCCESS,
     USER_DETAIL_FETCH_SUCCESS,
@@ -41,10 +43,7 @@ from accounts.constants import (
     INVALID_OR_EXPIRED_VERIFICATION_CODE,
     USER_NOT_FOUND_WITH_GIVEN_MAIL_ID,
     VERIFICATION_CODE_EXPIRED,
-    USER_EXAM_TYPE_URL_NAME,
-    USER_EXAM_TYPE_FETCH_SUCCESS,
     UNABLE_TO_SEND_MAIL_FOR_REGISTRATION,
-    SEND_MAIL_FOR_REGISTRATION_SUCCESS,
     PROVIDED_ROLE_DOES_NOT_EXIST,
     USER_CREDS_SENT_SUCCESS,
     USER_BY_EMAIL_URL,
@@ -66,7 +65,6 @@ from accounts.permissions import UserPermission, CanChangeEmail, IsActive
 from accounts.serializers import (
     CompanyInformationSerializer,
     AccountManagerDetailsSerializer,
-    RegisterSerializer,
     PasswordChangeSerializer,
     PasswordResetSerializer,
     PasswordVerifySerializer,
@@ -91,6 +89,12 @@ logger = logging.getLogger(__name__)
 
 
 class CompanyInformationView(generics.CreateAPIView):
+    """
+    OrderedDict([('name', 'Prep.Study'), ('tax_id', '12121'), ('annual_turnover', 'TILL_5M'), ('hq_location', 'Mumbai'), ('other_hubs', ['Poland']),
+     ('company_type', 'raw_producer'), ('product_categories', ['frozen', 'bev', 'alcohol']), ('vat_payer', '21'),
+      ('legal_address', 'House no 233, Infront of lic building, mandua')])
+
+    """
     queryset = CompanyInformation.objects.all()
     permission_classes = (AllowAny,)
     authentication_classes = []
@@ -98,42 +102,19 @@ class CompanyInformationView(generics.CreateAPIView):
 
     @atomic()
     def create(self, request, *args, **kwargs):
-        eid = request.data.get('eid')
         request_data = request.data.copy()
-        request_data = load_request_json_data(request_data=request_data, json_key_list=['educations',])
-
         hostname = request.headers.get('origin', None)
         hostname = hostname.split('//')[-1] if hostname else request.get_host()
         serializer = self.serializer_class(data=request_data, context={'host_name': hostname})
         if serializer.is_valid():
-            bid = request.data.get('bid')
-
-            status, create_user = serializer.save()
-            serializer.validated_data['role'] = request.data.get('role')
-
+            status, company_information = serializer.save()
             if not status:
                 set_rollback(True)
-                return create_response(message=USER_CREATION_FAILED, data=create_user)
+                return create_response(message=COMPANY_INFORMATION_CREATION_FAILED, data=company_information)
 
-            if iid and not request_data.get('role') == EXTERNAL_CANDIDATE['name']:
-                status, response = \
-                    add_user_to_institute_by_iid_service(
-                        iid=iid, bid=bid, user=create_user, is_corporate=is_corporate, hostname=hostname)
-                if not status:
-                    set_rollback(True)
-                    return create_response(message=USER_CREATION_FAILED, data=response)
-
-            if eid:
-                status, response = assign_exam_by_eid_service(eid=eid, user=create_user, hostname=hostname)
-                if not status:
-                    set_rollback(True)
-                    return create_response(message=USER_CREATION_FAILED, data=response)
-
-            send_mail_after_registration_service(
-                user=create_user, hostname=hostname, password=request_data.get('password'), bid=bid)
-            return create_response(success=True, message=USER_CREATION_SUCCESS, data=serializer.validated_data)
+            return create_response(success=True, message=COMPANY_INFORMATION_CREATION_SUCCESS, data=serializer.validated_data)
         else:
-            return create_response(message=USER_CREATION_FAILED, data=serializer.errors)
+            return create_response(message=COMPANY_INFORMATION_CREATION_FAILED, data=serializer.errors)
 
 
 class AccountManagerDetailsView(generics.CreateAPIView):
@@ -144,100 +125,18 @@ class AccountManagerDetailsView(generics.CreateAPIView):
 
     @atomic()
     def create(self, request, *args, **kwargs):
-        eid = request.data.get('eid')
         request_data = request.data.copy()
-        request_data = load_request_json_data(request_data=request_data, json_key_list=['educations',])
-
         hostname = request.headers.get('origin', None)
         hostname = hostname.split('//')[-1] if hostname else request.get_host()
         serializer = self.serializer_class(data=request_data, context={'host_name': hostname})
         if serializer.is_valid():
-            bid = request.data.get('bid')
-
-            status, create_user = serializer.save()
-            serializer.validated_data['role'] = request.data.get('role')
-
+            status, account_manager = serializer.save()
             if not status:
                 set_rollback(True)
-                return create_response(message=USER_CREATION_FAILED, data=create_user)
-
-            if iid and not request_data.get('role') == EXTERNAL_CANDIDATE['name']:
-                status, response = \
-                    add_user_to_institute_by_iid_service(
-                        iid=iid, bid=bid, user=create_user, is_corporate=is_corporate, hostname=hostname)
-                if not status:
-                    set_rollback(True)
-                    return create_response(message=USER_CREATION_FAILED, data=response)
-
-            if eid:
-                status, response = assign_exam_by_eid_service(eid=eid, user=create_user, hostname=hostname)
-                if not status:
-                    set_rollback(True)
-                    return create_response(message=USER_CREATION_FAILED, data=response)
-
-            send_mail_after_registration_service(
-                user=create_user, hostname=hostname, password=request_data.get('password'), bid=bid)
-            return create_response(success=True, message=USER_CREATION_SUCCESS, data=serializer.validated_data)
+                return create_response(message=ACCOUNT_MANAGER_CREATION_FAILED, data=account_manager)
+            return create_response(success=True, message=ACCOUNT_MANAGER_CREATION_SUCCESS, data=serializer.validated_data)
         else:
-            return create_response(message=USER_CREATION_FAILED, data=serializer.errors)
-
-
-class RegisterView(generics.CreateAPIView):
-    queryset = User.objects.all()
-    permission_classes = (AllowAny,)
-    authentication_classes = []
-    serializer_class = RegisterSerializer
-
-    @atomic()
-    def create(self, request, *args, **kwargs):
-        eid = request.data.get('eid')
-        request_data = request.data.copy()
-        request_data = load_request_json_data(request_data=request_data, json_key_list=['educations',])
-
-        hostname = request.headers.get('origin', None)
-        hostname = hostname.split('//')[-1] if hostname else request.get_host()
-        serializer = self.serializer_class(data=request_data, context={'host_name': hostname})
-        if serializer.is_valid():
-            bid = request.data.get('bid')
-            iid = request.data.get('iid')
-            is_corporate = request.data.get('is_corporate', False)
-            open_batch_invitation = request.data.get('open_batch_invitation', False)
-
-            status, create_user = serializer.save()
-            serializer.validated_data['role'] = request.data.get('role')
-            if serializer.validated_data.get('grade'):
-                serializer.validated_data['grade'] = serializer.validated_data['grade'].id
-            if not status:
-                set_rollback(True)
-                return create_response(message=USER_CREATION_FAILED, data=create_user)
-
-            if bid:
-                status, response = \
-                    add_uses_to_batch_by_bid_service(
-                        bid=bid, user=create_user, is_corporate=is_corporate, hostname=hostname,
-                        open_batch_invitation=open_batch_invitation)
-                if not status:
-                    set_rollback(True)
-                    return create_response(message=USER_CREATION_FAILED, data=response)
-            if iid and not request_data.get('role') == EXTERNAL_CANDIDATE['name']:
-                status, response = \
-                    add_user_to_institute_by_iid_service(
-                        iid=iid, bid=bid, user=create_user, is_corporate=is_corporate, hostname=hostname)
-                if not status:
-                    set_rollback(True)
-                    return create_response(message=USER_CREATION_FAILED, data=response)
-
-            if eid:
-                status, response = assign_exam_by_eid_service(eid=eid, user=create_user, hostname=hostname)
-                if not status:
-                    set_rollback(True)
-                    return create_response(message=USER_CREATION_FAILED, data=response)
-
-            send_mail_after_registration_service(
-                user=create_user, hostname=hostname, password=request_data.get('password'), bid=bid)
-            return create_response(success=True, message=USER_CREATION_SUCCESS, data=serializer.validated_data)
-        else:
-            return create_response(message=USER_CREATION_FAILED, data=serializer.errors)
+            return create_response(message=ACCOUNT_MANAGER_CREATION_FAILED, data=serializer.errors)
 
 
 class AccountVerifyView(generics.GenericAPIView):
@@ -318,6 +217,22 @@ class PasswordViewSet(ViewSet):
     @atomic()
     @action(detail=False, url_path='verify', methods=['post'], permission_classes=[AllowAny], authentication_classes=[])
     def verify(self, request):
+        """
+        Method which verifies and sets the new password for anonymous user
+        """
+        serializer = PasswordVerifySerializer(data=request.data, context={'user': request.user})
+        if serializer.is_valid():
+            status, reset_password = serializer.save()
+            if not status:
+                return create_response(message=reset_password)
+            return create_response(success=True, message=PASSWORD_CHANGE_SUCCESS)
+
+        else:
+            return create_response(message=PASSWORD_CHANGE_FAILED, data=serializer.errors)
+
+    @atomic()
+    @action(detail=False, url_path='set-password', methods=['post'], permission_classes=[AllowAny], authentication_classes=[])
+    def set(self, request):
         """
         Method which verifies and sets the new password for anonymous user
         """
@@ -610,15 +525,9 @@ class ResendVerificationCodeView(views.APIView):
             if verification_obj:
                 if verification_obj.is_expired:
                     initiate_account_verification.delay(user.id)
-                    # response['message'] = "Authentication code send successfully"
-                    # response['status'] = "SUCCESS"
-                    # return Response(response, status=status.HTTP_201_CREATED)
                     return create_response(success=True, message=AUTHENTICATION_CODE_SEND_SUCCESS)  # TODO: check once
                 else:
                     resend_verification_code.delay(verification_obj.id)
-                    # response['message'] = "Authentication code send successfully"
-                    # response['status'] = "SUCCESS"
-                    # return Response(response, status=status.HTTP_400_BAD_REQUEST)
                     return create_response(success=True, message=AUTHENTICATION_CODE_SEND_SUCCESS)  # TODO: check once
             else:
                 initiate_account_verification.delay(user.id)

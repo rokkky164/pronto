@@ -30,8 +30,7 @@ from authorization.role_list import (
 )
 from common.location.models import City, State, Country
 
-from utils.db_interactors import get_record_by_filters, db_get_family
-from utils.db_interactors import get_single_record_by_filters, db_add_many_to_many_field_data
+from utils.db_interactors import get_record_by_filters, db_get_family, get_single_record_by_filters, db_add_many_to_many_field_data
 
 
 class User(AbstractUser):
@@ -169,12 +168,12 @@ class CompanyInformation(Model):
     name = CharField(_('Company Name'), max_length=100)
     tax_id = CharField(_('Tax Identification Number'), max_length=100)
     annual_turnover = CharField(_('Annual Turnover'), max_length=50, choices=AnnualTurnover.choices)
-    hq_location = CharField(_('Headquarter Location'), max_length=100)
-    other_hubs = ArrayField(CharField(), null=True, default=list)
+    hq_location = CharField(_('Headquarter Location'), max_length=50)
     company_type = CharField(_('Company Type'), max_length=100)
-    product_categories = ArrayField(CharField(), null=True, default=list)
+    other_hubs = ArrayField(CharField(max_length=50), null=True, default=list)
+    product_categories = ArrayField(CharField(max_length=50), null=True, default=list)
     vat_payer = CharField(_('Vat Payer'), max_length=100)
-    legal_address = ForeignKey(Address, on_delete=CASCADE, related_name='legal_address')
+    legal_address = CharField(_('Legal Address'), max_length=255)
 
     def __str__(self):
         return f"{self.pk}: {self.name}"
@@ -184,9 +183,10 @@ class AccountManagerDetails(Model):
     name = CharField(_('Account Manager Name'), max_length=100)
     title = CharField(_('Title'), max_length=100)
     department = CharField(_('Department'), max_length=100)
-    email = EmailField(verbose_name=_('Email'), max_length=100)
+    email = EmailField(verbose_name=_('Email'), max_length=100, unique=True)
     phone = CharField(_('Mobile Number'), max_length=14, blank=True, null=True)   
-
+    user = ForeignKey(User, on_delete=CASCADE)
+    
     def __str__(self):
         return f"{self.pk}: {self.name}"
 

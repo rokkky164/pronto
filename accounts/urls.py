@@ -8,7 +8,7 @@ from accounts.constants import (
 	LOGIN_URL_NAME, TOKEN_REFRESH_URL_NAME, REGISTER_URL_NAME, ACCOUNT_VERIFY_URL_NAME,
 	RESEND_VERIFICATION_CODE_URL_NAME, SEND_MAIL_FOR_REGISTRATION,COMPANY_INFORMATION_URL_NAME, ACCOUNT_MANAGER_DETAILS_URL_NAME
 )
-from accounts.views import CompanyInformationView, AccountManagerDetailsView, AccountVerifyView, RegisterView,\
+from accounts.views import CompanyInformationView, AccountManagerDetailsView, AccountVerifyView,\
 	PasswordViewSet, UserViewSet, CustomLoginView, CustomTokenRefreshView, ResendVerificationCodeView
 
 router = SimpleRouter(trailing_slash=False)
@@ -22,8 +22,6 @@ urlpatterns = [
 	path('auth/create-acc-mgr-details', AccountManagerDetailsView.as_view(), name=ACCOUNT_MANAGER_DETAILS_URL_NAME),
 	path('auth/login', CustomLoginView.as_view(), name=LOGIN_URL_NAME),
 	path('auth/refresh-token', CustomTokenRefreshView.as_view(), name=TOKEN_REFRESH_URL_NAME),
-	path('register', RegisterView.as_view(), name=REGISTER_URL_NAME),
-	path('register/verify-account/<str:verification_code>', AccountVerifyView.as_view(), name=ACCOUNT_VERIFY_URL_NAME),
 	path(
 		'register/resend-verification-code',
 		ResendVerificationCodeView.as_view(),

@@ -54,12 +54,15 @@ INSTALLED_APPS = [
     'accounts',
     'authorization',
     'common',
-    'utils'
+    'utils',
+    # 3rd party apps
+    'corsheaders'
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -144,6 +147,15 @@ STATIC_URL = '/static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+AUTH_USER_MODEL = 'accounts.User'
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000"
+]
+
+CORS_ORIGIN_ALLOW_ALL = True
 
 DEFAULT_FROM_EMAIL = "hansdah.roshan@gmail.com"
 SERVER_EMAIL = "hansdah.roshan@gmail.com"

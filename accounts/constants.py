@@ -138,8 +138,10 @@ YOU_ARE_NOT_ALLOWED_TO_CHANGE_EMAIL = 'You are not allowed to change email addre
 INVALID_CREDENTIALS = 'Invalid credentials.'
 INVALID_DATA = 'Invalid data.'
 #   Register
-USER_CREATION_SUCCESS = 'User created successfully.'
-USER_CREATION_FAILED = "User creation failed."
+COMPANY_INFORMATION_CREATION_SUCCESS = 'Company Information created successfully.'
+COMPANY_INFORMATION_CREATION_FAILED = "Company Information creation failed."
+ACCOUNT_MANAGER_CREATION_SUCCESS = 'Account Manager created successfully.'
+ACCOUNT_MANAGER_CREATION_FAILED = "Account Manager creation failed."
 EITHER_MOBILE_OR_EMAIL_REQUIRED = "Either Mobile number or Email is required."
 PROVIDED_ROLE_DOES_NOT_EXIST = "Provided role doesn't exist."
 GRADE_FIELD_REQUIRED_STUDENT = "Grade/Degree field is required for student user."

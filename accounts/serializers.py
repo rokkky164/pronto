@@ -23,20 +23,7 @@ from accounts.constants import (
     INVALID_MOBILE_NUMBER, INACTIVATED_ACCOUNT,
     NEW_PASSWORD_SAME_AS_CURRENT_PASSWORD, EMAIL_IS_REGISTERED, NUMBER_IS_REGISTERED
 )
-# from accounts.db_interactors import (
-#     get_user_by_email,
-#     get_password_reset_request_by_code
-# )
 from accounts.models import User, Address, CompanyInformation, AccountManagerDetails, CertificateDocument, DeleteUserAccountRequest
-# from accounts.services import (
-#     create_user_env_details_service,
-#     create_user_service,
-#     change_password_service,
-#     create_password_reset_request_service,
-#     update_password_reset_request_service,
-#     update_school_service, update_user_service,
-#     create_change_email_request_service, delete_user_account_request_service, send_delete_account_request_service
-# )
 from accounts.tasks import check_and_update_user_delete_request_task
 from accounts.utils import match_re
 from authorization.role_list import (
@@ -58,8 +45,25 @@ class CompanyInformationSerializer(ModelSerializer):
     class Meta:
         model = CompanyInformation
         fields = ('name', 'tax_id', 'annual_turnover', 'hq_location', 'other_hubs', 'company_type',
-                  'product_categories', 'vat_payer', 'legal_address', 'district'
+                  'product_categories', 'vat_payer', 'legal_address'
                 )
+
+    def create(self, validated_data):
+        status, company_information = db_create_record(
+            model=CompanyInformation,
+            data={
+                'name': validated_data['name'],
+                'tax_id': validated_data['tax_id'],
+                'annual_turnover': validated_data['annual_turnover'],
+                'hq_location': validated_data['hq_location'],
+                'company_type': validated_data['company_type'],
+                'other_hubs': validated_data['other_hubs'],
+                'product_categories': validated_data['product_categories'],
+                'vat_payer': validated_data['vat_payer'],
+                'legal_address': validated_data['legal_address']
+            }
+        )
+        return status, company_information
 
 
 class AccountManagerDetailsSerializer(ModelSerializer):
@@ -68,6 +72,19 @@ class AccountManagerDetailsSerializer(ModelSerializer):
         model = AccountManagerDetails
         fields = ('name', 'title', 'department', 'email', 'phone')
 
+    def create(self, validated_data):
+        status, account_manager = db_create_record(
+            model=AccountManagerDetails,
+            data={
+                'name': validated_data['name'],
+                'title': validated_data['title'],
+                'department': validated_data['department'],
+                'email': validated_data['email'],
+                'phone': validated_data['phone']
+            }
+        )
+        return status, account_manager
+
 
 class CertificateDocumentSerializer(ModelSerializer):
     
@@ -75,89 +92,54 @@ class CertificateDocumentSerializer(ModelSerializer):
         model = CertificateDocument
         fields = ('name', 'document_no', 'document', 'status')
 
+    def create(self, validated_data):
+        status, certificate_document = db_create_record(
+            model=CertificateDocument,
+            data={
+                'name': validated_data['name'],
+                'document_no': validated_data['document_no'],
+                'document': validated_data['document'],
+                'status': validated_data['status']
+            }
+        )
+        return status, certificate_document
 
-class RegisterSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(
-        required=False,
-        validators=[UniqueValidator(queryset=User.objects.filter(), message=EMAIL_IS_REGISTERED)]
-    )
-    username = serializers.CharField(
-        required=True,
-        validators=[UniqueValidator(queryset=User.objects.filter(), message=USERNAME_IS_REGISTERED)]
-    )
-    mobile_number = serializers.CharField(
-        required=False,
-        validators=[UniqueValidator(queryset=User.objects.filter(), message=NUMBER_IS_REGISTERED)]
-    )
-    role = serializers.SlugRelatedField(
-        slug_field='name',
-        required=True,
-        queryset=Role.objects.filter(
-            name__in=[BUYER['name'], SUPPLIER['name'], DISTRIBUTOR['name'], ADMIN['name'],
-                      TRADEPRONTO_ADMIN['name']]),
-        error_messages={'does_not_exist': PROVIDED_ROLE_DOES_NOT_EXIST}
-    )
 
-    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
-    gender = serializers.ChoiceField(choices=User.Gender.choices, required=False)
-    iid = serializers.UUIDField(required=False)
- 
-    class Meta:
-        model = User
-        fields = ('username', 'password', 'email', 'mobile_number', 'first_name', 'last_name', 'role',
-                  'gender', 'bid', 'status', 'grade', 'is_corporate', 'iid'
-                  )
-        extra_kwargs = {
-            'first_name': {'required': True},
-            'last_name': {'required': False}
-        }
+class PasswordSetSerializer(serializers.Serializer):
+    """
+    Serializer to save new password for user
+    """
+    email = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
+    confirm_password = serializers.CharField(required=True)
 
     def validate(self, attrs):
-        grade = None
+        if not attrs.get('new_password') == attrs.get('confirm_password'):
+            raise serializers.ValidationError(BOTH_PASSWORD_MUST_SAME)
 
-        # TODO: temp. commented validation. need to remove this comment
-        # if attrs.get('role') and attrs.get('role').name == STUDENT['name'] and not attrs.get('grade'):
-        #     raise ValidationError({'Grade/Degree': GRADE_FIELD_REQUIRED_STUDENT})
+        user = self.context.get('user')
+        if not user:
+            raise ValueError(USER_OBJECT_NOT_PROVIDED)
 
-        if not attrs.get('email', None) and not attrs.get('mobile_number', None):
-            raise serializers.ValidationError(EITHER_MOBILE_OR_EMAIL_REQUIRED)
-        if attrs.get('grade'):
-            grade = attrs['grade']
-            del attrs['grade']
-        # get the password from the data
-        password = attrs.get('password')
-
-        # pop batch invitation id and is_corporate from attrs and add into context
-        self.context.update({'bid': attrs.pop('bid', None)})
-        self.context.update({'is_corporate': attrs.pop('is_corporate', None)})
-        self.context.update({'iid': attrs.pop('iid', None)})
+        password = attrs.get('password_1')
         errors = dict()
+
         try:
-            password_validation.validate_password(password=password, user=User(**attrs))
+            password_validation.validate_password(password=password, user=user)
         except ValidationError as e:
             errors['password'] = list(e.messages)
+
         if errors:
             raise serializers.ValidationError(errors)
-        attrs['grade'] = grade
+
         return attrs
 
     def create(self, validated_data):
-        is_corporate = self.context.get('is_corporate', None)
-        auto_activate = False if not is_corporate else True
-        status, user = create_user_service(
-            first_name=validated_data['first_name'],
-            last_name=validated_data['last_name'],
-            username=validated_data['username'],
-            password=validated_data['password'],
-            role=validated_data['role'],
-            email=validated_data.get('email', ''),  # added blank email to overcome the null IntegrityError,
-            mobile_number=validated_data.get('mobile_number'),
-            gender=validated_data.get('gender'),
-            status=validated_data.get('status'),
-            grade=validated_data.get('grade'),
-            is_active=auto_activate
-        )
-        return status, user
+        status, account_manager = get_single_record_by_filters(model=AccountManagerDetails, filters={'email': validated_data['email']})
+        account_manager_user = account_manager.user
+        account_manager_user.set_password(validate_password['new_password'])
+        account_manager_user.save()
+        return status, account_manager_user
 
 
 class PasswordChangeSerializer(serializers.Serializer):
@@ -364,74 +346,6 @@ class UserAddressUpdateSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         result = super().to_representation(instance)
         return OrderedDict([(key, result[key]) for key in result if result[key] is not None])
-
-
-class UserDetailSerializer(serializers.ModelSerializer):
-    role = serializers.SerializerMethodField()
-    address = UserAddressSerializer()
-
-    section = serializers.CharField(source='student_profile.section.name', read_only=True)
-    fathers_name = serializers.CharField(source='student_profile.fathers_name', read_only=True)
-    mothers_name = serializers.CharField(source='student_profile.mothers_name', read_only=True)
-    guardian_contact_number = serializers.CharField(source='student_profile.guardian_contact_number', read_only=True)
-    total_gems = serializers.IntegerField(source='student_profile.total_gems', read_only=True, default=0)
-    rank = serializers.IntegerField(source='student_profile.rank', read_only=True)
-    daily_challenge = serializers.BooleanField(source='student_profile.daily_challenge', read_only=True)
-    school = serializers.SerializerMethodField()
-
-    qualification = serializers.CharField(source='teacher_profile.qualification', read_only=True)
-    experience = serializers.IntegerField(source='teacher_profile.experience', read_only=True)
-    current_student_count = serializers.IntegerField(source='teacher_profile.current_student_count', read_only=True)
-    total_student_count = serializers.IntegerField(source='teacher_profile.total_student_count', read_only=True)
-    area_of_expertise = serializers.CharField(source='teacher_profile.area_of_expertise', read_only=True)
-    institute = serializers.SerializerMethodField(read_only=True)
-    is_superteacher = serializers.BooleanField(source='teacher_profile.is_superteacher')
-    badge = serializers.SerializerMethodField()
-
-    #   Employees
-    educations = SerializerMethodField()
-
-    def get_role(self, obj):
-        if obj.role:
-            return obj.role.label
-        return None
-
-    def get_institute(self, obj):
-        institute = obj.institute()
-        if institute:
-            return {'id': institute.id, 'name': institute.name, 'is_editable': False}
-        return None
-
-    def get_school(self, obj):
-        if hasattr(obj, 'student_profile'):
-            school = getattr(obj.student_profile, 'school')
-            if school:
-                return SchoolDetailUpdateSerializer(school).data
-        return None
-
-    @staticmethod
-    def get_badge(obj):
-        if obj.role and obj.role.name == STUDENT['name'] and hasattr(obj, 'student_profile'):
-            return get_badge_by_gems(gems=obj.student_profile.total_gems)[-1]
-        return None
-
-    @staticmethod
-    def get_educations(obj):
-        if hasattr(obj, 'employee'):
-            educations = db_filter_query_set(
-                query_set=obj.employee.educations, filters={'status': Education.Status.ACTIVE})[1]
-            return EducationDetailsSerializer(educations, many=True).data
-        return None
-
-    class Meta:
-        model = User
-        fields = (
-            'id', 'username', 'email', 'mobile_number', 'first_name', 'last_name', 'role', 'gender', 'grade', 'dob',
-            'section', 'fathers_name', 'mothers_name', 'guardian_contact_number', 'total_gems', 'rank', 'daily_challenge', 'school', 'qualification',
-            'experience', 'current_student_count', 'total_student_count', 'area_of_expertise', 'is_superteacher',
-            'institute', 'address', 'photo', 'avatar', 'thumbnail', 'has_completed_profile', 'status', 'is_active',
-            'is_deleted', 'badge', 'educations'
-        )
 
 
 class CustomLoginSerializer(serializers.Serializer):
