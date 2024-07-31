@@ -18,8 +18,9 @@ router.register(USER_PREFIX, UserViewSet, basename=USER_BASENAME)
 app_name = APP_NAME
 
 urlpatterns = [
-	path('auth/create-comp-info', CompanyInformationView.as_view(), name=COMPANY_INFORMATION_URL_NAME),
-	path('auth/create-acc-mgr-details', AccountManagerDetailsView.as_view(), name=ACCOUNT_MANAGER_DETAILS_URL_NAME),
+	path('auth/company-information', CompanyInformationView.as_view(), name=COMPANY_INFORMATION_URL_NAME),
+	path('auth/company-information/<company_info_id>', CompanyInformationView.as_view(), name=COMPANY_INFORMATION_URL_NAME),
+	path('auth/account-mgr-details', AccountManagerDetailsView.as_view(), name=ACCOUNT_MANAGER_DETAILS_URL_NAME),
 	path('auth/login', CustomLoginView.as_view(), name=LOGIN_URL_NAME),
 	path('auth/refresh-token', CustomTokenRefreshView.as_view(), name=TOKEN_REFRESH_URL_NAME),
 	path(

@@ -1,0 +1,35 @@
+{% extends "email/base.html" %}
+
+
+{% block org_name %}
+    {% if org_name %}
+        {{ org_name }}
+ 	{% else %}
+        PrepStudy!
+	{% endif %}
+{% endblock org_name %}
+
+{% block content %}
+    <! First Row -->
+    <table role="presentation" border="0" cellpadding="0" cellspacing="10px" style="padding: 30px 30px 30px 60px;">
+        <tr>
+            <td>
+                <h5>Dear {{ fullname }},</h5>
+                <p>{{ message_heading }}</p>
+                <h5>
+                    Username: {{ username }} <br> Role: {{ role }} <br> Account registered at: {{ registered_at }}
+                </h5>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <p>{{ message }}</p>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <h3>Your OTP is - {{ code }}</h3>
+            </td>
+        </tr>
+    </table>
+{% endblock content %}

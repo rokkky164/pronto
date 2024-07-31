@@ -8,7 +8,7 @@ from django.utils.timezone import now
 from rest_framework import serializers
 from rest_framework.fields import SerializerMethodField
 from rest_framework.relations import PrimaryKeyRelatedField
-from rest_framework.serializers import ModelSerializer, CharField, ChoiceField, IntegerField, EmailField, \
+from rest_framework.serializers import Serializer, ModelSerializer, CharField, ChoiceField, IntegerField, EmailField, \
     SlugRelatedField
 from rest_framework.validators import UniqueValidator
 from rest_framework_simplejwt.settings import api_settings
@@ -24,8 +24,8 @@ from accounts.constants import (
     NEW_PASSWORD_SAME_AS_CURRENT_PASSWORD, EMAIL_IS_REGISTERED, NUMBER_IS_REGISTERED
 )
 from accounts.models import User, Address, CompanyInformation, AccountManagerDetails, CertificateDocument, DeleteUserAccountRequest
-from accounts.tasks import check_and_update_user_delete_request_task
-from accounts.utils import match_re
+from accounts.tasks import check_and_update_user_delete_request_task, initiate_account_verification
+from accounts.utils import match_re, generate_username
 from authorization.role_list import (
     BUYER, SUPPLIER, DISTRIBUTOR, ADMIN, TRADEPRONTO_ADMIN
 )
@@ -66,25 +66,39 @@ class CompanyInformationSerializer(ModelSerializer):
         return status, company_information
 
 
-class AccountManagerDetailsSerializer(ModelSerializer):
-    
-    class Meta:
-        model = AccountManagerDetails
-        fields = ('user', 'title', 'department', 'email', 'phone')
+class AccountManagerDetailsSerializer(Serializer):
+    first_name = CharField(required=True)
+    last_name = CharField(required=True)
+    email = CharField(required=True)
+    phone = CharField(required=True)
+    title = CharField(required=True)
+    department = CharField(required=True)
 
+    def validate(self, attrs):
+        if User.objects.filter(email=attrs['email']).exists():
+            raise ValidationError(f"User with this mail id {attrs['email']} already exists.")
+        return attrs
+    
     def create(self, validated_data):
-        status, account_manager = db_create_record(
-            model=AccountManagerDetails,
+        status, user = db_create_record(
+            model=User,
             data={
-                'user': validated_data['user'],
-                'name': validated_data['name'],
-                'title': validated_data['title'],
-                'department': validated_data['department'],
+                'first_name': validated_data['first_name'],
+                'last_name': validated_data['last_name'],
                 'email': validated_data['email'],
-                'phone': validated_data['phone']
+                'mobile_number': validated_data['phone'],
+                'username': generate_username(validated_data['first_name'], validated_data['last_name'], validated_data['email'])
             }
         )
-        return status, account_manager
+        account_manager_status, account_manager = db_create_record(
+            model=AccountManagerDetails,
+            data={
+                'user': user,
+                'title': validated_data['title'],
+                'department': validated_data['department']
+            }
+        )
+        return account_manager_status, account_manager
 
 
 class CertificateDocumentSerializer(ModelSerializer):
@@ -111,18 +125,18 @@ class PasswordSetSerializer(serializers.Serializer):
     Serializer to save new password for user
     """
     email = serializers.CharField(required=True)
-    new_password = serializers.CharField(required=True)
+    password = serializers.CharField(required=True)
     confirm_password = serializers.CharField(required=True)
 
     def validate(self, attrs):
-        if not attrs.get('new_password') == attrs.get('confirm_password'):
+        if not attrs.get('password') == attrs.get('confirm_password'):
             raise serializers.ValidationError(BOTH_PASSWORD_MUST_SAME)
-
-        user = self.context.get('user')
+        user_status, user = get_single_record_by_filters(model=User, filters={'email': attrs['email']})
+        attrs['user'] = user
         if not user:
             raise ValueError(USER_OBJECT_NOT_PROVIDED)
 
-        password = attrs.get('password_1')
+        password = attrs.get('password')
         errors = dict()
 
         try:
@@ -136,11 +150,11 @@ class PasswordSetSerializer(serializers.Serializer):
         return attrs
 
     def create(self, validated_data):
-        status, account_manager = get_single_record_by_filters(model=AccountManagerDetails, filters={'email': validated_data['email']})
-        account_manager_user = account_manager.user
-        account_manager_user.set_password(validate_password['new_password'])
-        account_manager_user.save()
-        return status, account_manager_user
+        validated_data['user'].set_password(validated_data['password'])
+        validated_data['user'].save()
+        # send mail to user for account verification
+        initiate_account_verification.delay(validated_data['user'].id)
+        return True, validated_data['user']
 
 
 class PasswordChangeSerializer(serializers.Serializer):
@@ -355,11 +369,6 @@ class CustomLoginSerializer(serializers.Serializer):
         write_only=True, required=False, style={'input_type': 'password', 'placeholder': 'Password'}
     )
     auth_code = serializers.CharField(write_only=True, required=False)
-    bid = serializers.UUIDField(required=False, write_only=True)
-    is_corporate = serializers.BooleanField(default=False)
-    iid = serializers.UUIDField(required=False)
-    sbid = serializers.CharField(required=False)
-
 
     def validate(self, attrs):
         username = attrs.get('username')
@@ -371,7 +380,7 @@ class CustomLoginSerializer(serializers.Serializer):
 
         user = None
         if username and password:
-            filters = {'is_deleted': False}
+            filters = {}
             if '@' in username:
                 filters['email'] = username
             else:
@@ -382,7 +391,7 @@ class CustomLoginSerializer(serializers.Serializer):
         elif auth_code:
             user = authenticate(auth_code=auth_code, is_deleted=False)
 
-        if not user or user.is_deleted:
+        if not user:
             raise serializers.ValidationError(INVALID_CREDENTIALS)
         elif not user.is_active:
             raise serializers.ValidationError(INACTIVATED_ACCOUNT)
@@ -456,15 +465,6 @@ class UserNameSerializer(ModelSerializer):
 
 class LoginDetailSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
-    section = serializers.CharField(source='student_profile.section.name', read_only=True)
-    total_gems = serializers.IntegerField(source='student_profile.total_gems', read_only=True, default=0)
-    rank = serializers.IntegerField(source='student_profile.rank', read_only=True)
-    daily_challenge = serializers.BooleanField(source='student_profile.daily_challenge', read_only=True)
-
-    qualification = serializers.CharField(source='teacher_profile.qualification', read_only=True)
-    institute = serializers.SerializerMethodField(read_only=True)
-    is_superteacher = serializers.BooleanField(source='teacher_profile.is_superteacher')
-    badge = serializers.SerializerMethodField()
 
     def get_role(self, obj):
         if obj.role:
@@ -481,10 +481,8 @@ class LoginDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'id', 'username', 'email', 'mobile_number', 'first_name', 'last_name', 'role', 'gender', 'grade', 'dob',
-            'section', 'total_gems', 'rank', 'daily_challenge', 'qualification', 'is_superteacher',
-            'institute', 'photo', 'avatar', 'thumbnail', 'has_completed_profile', 'status', 'is_active',
-            'is_deleted', 'badge',
+            'id', 'username', 'email', 'mobile_number', 'first_name', 'last_name', 'role', 'gender', 'dob',
+            'photo', 'is_active'
         )
 
 

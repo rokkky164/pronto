@@ -25,6 +25,7 @@ env = environ.Env(
     DEBUG_SQL=(bool, False),
     ENVIRONMENT=(str, 'local'),
 )
+ENVIRONMENT = env('ENVIRONMENT')
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -164,3 +165,15 @@ URL_PREFIX = env('URL_PREFIX', default='https://')
 RESEND_NOTIFICATION_EMAIL_TIME = int(env('RESEND_NOTIFICATION_EMAIL_TIME', default=5))  # Minutes
 DELETE_USER_ACCOUNT_DAYS = int(env('DELETE_USER_ACCOUNT_DAYS', default=7))  # Minutes
 DELETE_ACCOUNT_REQUEST_HOURS = int(env('DELETE_ACCOUNT_REQUEST_HOURS', default=1)) # Hours
+
+# Email Settings
+ANYMAIL = {
+    "MAILGUN_API_KEY": env('MAILGUN_API_KEY'),
+    "MAILGUN_SENDER_DOMAIN": 'pinakasolutions.com',
+}
+if ENVIRONMENT == 'local':
+    # Log email to console for local development
+    # EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"

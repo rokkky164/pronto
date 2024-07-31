@@ -16,8 +16,10 @@ from rest_framework.viewsets import ViewSet
 from accounts.constants import (
     COMPANY_INFORMATION_CREATION_SUCCESS,
     COMPANY_INFORMATION_CREATION_FAILED,
+    COMPANY_INFORMATION_FETCH_SUCCESS,
     ACCOUNT_MANAGER_CREATION_SUCCESS,
     ACCOUNT_MANAGER_CREATION_FAILED,
+    COMPANY_INFORMATION_NOT_FOUND,
     USER_UPDATE_SUCCESS,
     USER_LIST_FETCH_SUCCESS,
     USER_DETAIL_FETCH_SUCCESS,
@@ -68,10 +70,12 @@ from accounts.serializers import (
     PasswordChangeSerializer,
     PasswordResetSerializer,
     PasswordVerifySerializer,
+    PasswordSetSerializer,
     CustomLoginSerializer,
     CustomTokenRefreshSerializer,
     UserSessionSerializer,
-    UserEnvironmentDetailsSerializer
+    UserEnvironmentDetailsSerializer,
+    LoginDetailSerializer
 )
 from accounts.tasks import resend_verification_code, initiate_account_verification, set_user_environment_session
 
@@ -88,7 +92,7 @@ from utils.paginations import StandardResultsSetPagination
 logger = logging.getLogger(__name__)
 
 
-class CompanyInformationView(generics.CreateAPIView):
+class CompanyInformationView(generics.GenericAPIView):
     """
     OrderedDict([('name', 'Prep.Study'), ('tax_id', '12121'), ('annual_turnover', 'TILL_5M'), ('hq_location', 'Mumbai'), ('other_hubs', ['Poland']),
      ('company_type', 'raw_producer'), ('product_categories', ['frozen', 'bev', 'alcohol']), ('vat_payer', '21'),
@@ -100,8 +104,21 @@ class CompanyInformationView(generics.CreateAPIView):
     authentication_classes = []
     serializer_class = CompanyInformationSerializer
 
+    def get_object(self, *args, **kwargs):
+        return get_record_by_id(model=CompanyInformation, _id=self.kwargs.get('company_info_id'))
+
+    def get(self, request, *args, **kwargs):
+        """
+        View to get company info details
+        """
+        status, company_information = self.get_object(*args, **kwargs)
+        if not status:
+            return create_response(message=COMPANY_INFORMATION_NOT_FOUND)
+        serializer = self.get_serializer(instance=company_information)
+        return create_response(success=True, message=COMPANY_INFORMATION_FETCH_SUCCESS, data=serializer.data)
+    
     @atomic()
-    def create(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         request_data = request.data.copy()
         hostname = request.headers.get('origin', None)
         hostname = hostname.split('//')[-1] if hostname else request.get_host()
@@ -117,17 +134,50 @@ class CompanyInformationView(generics.CreateAPIView):
             return create_response(message=COMPANY_INFORMATION_CREATION_FAILED, data=serializer.errors)
 
 
-class AccountManagerDetailsView(generics.CreateAPIView):
+class AccountManagerDetailsView(generics.GenericAPIView):
     queryset = AccountManagerDetails.objects.all()
     permission_classes = (AllowAny,)
     authentication_classes = []
     serializer_class = AccountManagerDetailsSerializer
 
+    def get(self, request, *args, **kwargs):
+        """
+        View to get Account Manager details
+        """
+        status, account_verification_request = self.get_object(*args, **kwargs)
+        if not status:
+            return create_response(message=account_verification_request)
+
+        if account_verification_request.is_expired:
+            return create_response(message=VERIFICATION_CODE_EXPIRED)
+
+        elif account_verification_request.is_account_verified:
+            return create_response(message=VERIFICATION_CODE_ALREADY_USED)
+
+        data = {'verified_at': timezone.now(), 'is_account_verified': True}
+        status, update_request = db_update_instance(instance=account_verification_request, data=data)
+        if not status:
+            return create_response(message=status)
+        data = {'is_email_verified': True, 'is_active': True}
+        status, update_user = db_update_instance(instance=account_verification_request.user, data=data)
+        if not status:
+            return create_response(message=status)
+
+        return create_response(success=True, message=ACTIVATED_ACCOUNT_SUCCESS)
+
     @atomic()
-    def create(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         request_data = request.data.copy()
         hostname = request.headers.get('origin', None)
         hostname = hostname.split('//')[-1] if hostname else request.get_host()
+        request_data = {
+            'first_name': request_data['first_name'],
+            'last_name': request_data['last_name'],
+            'email': request_data['email'],
+            'phone': request_data['phone'],
+            'title': request_data['title'],
+            'department': request_data['department']
+        }
         serializer = self.serializer_class(data=request_data, context={'host_name': hostname})
         if serializer.is_valid():
             status, account_manager = serializer.save()
@@ -236,11 +286,11 @@ class PasswordViewSet(ViewSet):
         """
         Method which verifies and sets the new password for anonymous user
         """
-        serializer = PasswordVerifySerializer(data=request.data, context={'user': request.user})
+        serializer = PasswordSetSerializer(data=request.data)
         if serializer.is_valid():
-            status, reset_password = serializer.save()
+            status, set_password = serializer.save()
             if not status:
-                return create_response(message=reset_password)
+                return create_response(message=set_password)
             return create_response(success=True, message=PASSWORD_CHANGE_SUCCESS)
 
         else:
@@ -462,31 +512,18 @@ class CustomLoginView(generics.GenericAPIView):
         if serializer.is_valid():
             data = serializer.save()
             user = data['user']
-            env_session_data = {
-                'user_id': user.id,
-                'os': request.user_agent.os.family,
-                'os_version': request.user_agent.os.version_string,
-                'ip_address': request.META.get('HTTP_X_FORWARDED_FOR'),
-                'browser': request.user_agent.browser.family,
-                'browser_version': request.user_agent.browser.version_string,
-                'device_type': get_device_type(user_agent=request.user_agent),
-                'device': request.user_agent.device.family,
-                'token': data['refresh'],
-            }
-            set_user_environment_session.apply_async(kwargs=env_session_data, eta=now())
-
-            if bid:
-                status, response = \
-                    add_uses_to_batch_by_bid_service(bid=bid, user=user, is_corporate=is_corporate,
-                                                     open_batch_invitation=open_batch_invitation)
-                if not status:
-                    logger.error('Error while adding user in batch : ' + str(response))
-            if iid:
-                status, response = \
-                    add_user_to_institute_by_iid_service(
-                        bid=bid, iid=iid, user=user, is_corporate=is_corporate)
-                if not status:
-                    logger.error('Error while adding institute in batch : ' + str(response))
+            # env_session_data = {
+            #     'user_id': user.id,
+            #     'os': request.user_agent.os.family,
+            #     'os_version': request.user_agent.os.version_string,
+            #     'ip_address': request.META.get('HTTP_X_FORWARDED_FOR'),
+            #     'browser': request.user_agent.browser.family,
+            #     'browser_version': request.user_agent.browser.version_string,
+            #     'device_type': get_device_type(user_agent=request.user_agent),
+            #     'device': request.user_agent.device.family,
+            #     'token': data['refresh'],
+            # }
+            # set_user_environment_session.apply_async(kwargs=env_session_data, eta=now())
 
             data['user'] = LoginDetailSerializer(user).data
             return create_response(success=True, message=LOGIN_SUCCESS, data=data)

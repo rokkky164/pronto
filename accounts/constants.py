@@ -140,6 +140,9 @@ INVALID_DATA = 'Invalid data.'
 #   Register
 COMPANY_INFORMATION_CREATION_SUCCESS = 'Company Information created successfully.'
 COMPANY_INFORMATION_CREATION_FAILED = "Company Information creation failed."
+COMPANY_INFORMATION_FETCH_SUCCESS = 'Company Information fetched successfully.'
+COMPANY_INFORMATION_NOT_FOUND = "Company Information not found."
+
 ACCOUNT_MANAGER_CREATION_SUCCESS = 'Account Manager created successfully.'
 ACCOUNT_MANAGER_CREATION_FAILED = "Account Manager creation failed."
 EITHER_MOBILE_OR_EMAIL_REQUIRED = "Either Mobile number or Email is required."

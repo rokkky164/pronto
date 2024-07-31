@@ -1,5 +1,5 @@
 from authorization.models import UserEnvironmentDetails
-import re
+import random, re
 
 from django.core import validators
 from django.utils.deconstruct import deconstructible

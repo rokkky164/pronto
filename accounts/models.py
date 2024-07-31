@@ -183,11 +183,9 @@ class AccountManagerDetails(Model):
     user = ForeignKey(User, on_delete=CASCADE)
     title = CharField(_('Title'), max_length=100)
     department = CharField(_('Department'), max_length=100)
-    email = EmailField(verbose_name=_('Email'), max_length=100, unique=True)
-    phone = CharField(_('Mobile Number'), max_length=14, blank=True, null=True)   
     
     def __str__(self):
-        return f"{self.pk}: {self.name}"
+        return f"{self.pk}: {self.user.username}"
 
 
 class CertificateDocument(Model):
