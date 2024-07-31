@@ -17,9 +17,11 @@ from accounts.constants import (
     COMPANY_INFORMATION_CREATION_SUCCESS,
     COMPANY_INFORMATION_CREATION_FAILED,
     COMPANY_INFORMATION_FETCH_SUCCESS,
+    COMPANY_INFORMATION_NOT_FOUND,
     ACCOUNT_MANAGER_CREATION_SUCCESS,
     ACCOUNT_MANAGER_CREATION_FAILED,
-    COMPANY_INFORMATION_NOT_FOUND,
+    ACCOUNT_MANAGER_FETCH_SUCCESS,
+    ACCOUNT_MANAGER_NOT_FOUND,
     USER_UPDATE_SUCCESS,
     USER_LIST_FETCH_SUCCESS,
     USER_DETAIL_FETCH_SUCCESS,
@@ -61,12 +63,12 @@ from accounts.utils import get_device_type
 #     db_get_user_list,
 # )
 from accounts.models import (
-    User, DeleteUserAccountRequest, CompanyInformation, AccountManagerDetails
+    User, DeleteUserAccountRequest, CompanyInformation, AccountManager
 )
 from accounts.permissions import UserPermission, CanChangeEmail, IsActive
 from accounts.serializers import (
     CompanyInformationSerializer,
-    AccountManagerDetailsSerializer,
+    AccountManagerSerializer,
     PasswordChangeSerializer,
     PasswordResetSerializer,
     PasswordVerifySerializer,
@@ -135,35 +137,23 @@ class CompanyInformationView(generics.GenericAPIView):
 
 
 class AccountManagerDetailsView(generics.GenericAPIView):
-    queryset = AccountManagerDetails.objects.all()
+    queryset = AccountManager.objects.all()
     permission_classes = (AllowAny,)
     authentication_classes = []
-    serializer_class = AccountManagerDetailsSerializer
+    serializer_class = AccountManagerSerializer
+
+    def get_object(self, *args, **kwargs):
+        return get_record_by_id(model=AccountManager, _id=self.kwargs.get('manager_id'))
 
     def get(self, request, *args, **kwargs):
         """
         View to get Account Manager details
         """
-        status, account_verification_request = self.get_object(*args, **kwargs)
+        status, account_manager = self.get_object(*args, **kwargs)
         if not status:
-            return create_response(message=account_verification_request)
-
-        if account_verification_request.is_expired:
-            return create_response(message=VERIFICATION_CODE_EXPIRED)
-
-        elif account_verification_request.is_account_verified:
-            return create_response(message=VERIFICATION_CODE_ALREADY_USED)
-
-        data = {'verified_at': timezone.now(), 'is_account_verified': True}
-        status, update_request = db_update_instance(instance=account_verification_request, data=data)
-        if not status:
-            return create_response(message=status)
-        data = {'is_email_verified': True, 'is_active': True}
-        status, update_user = db_update_instance(instance=account_verification_request.user, data=data)
-        if not status:
-            return create_response(message=status)
-
-        return create_response(success=True, message=ACTIVATED_ACCOUNT_SUCCESS)
+            return create_response(message=ACCOUNT_MANAGER_NOT_FOUND)
+        serializer = self.get_serializer(instance=account_manager)
+        return create_response(success=True, message=ACCOUNT_MANAGER_FETCH_SUCCESS, data=serializer.data)
 
     @atomic()
     def post(self, request, *args, **kwargs):

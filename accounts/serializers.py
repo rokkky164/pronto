@@ -23,7 +23,7 @@ from accounts.constants import (
     INVALID_MOBILE_NUMBER, INACTIVATED_ACCOUNT,
     NEW_PASSWORD_SAME_AS_CURRENT_PASSWORD, EMAIL_IS_REGISTERED, NUMBER_IS_REGISTERED
 )
-from accounts.models import User, Address, CompanyInformation, AccountManagerDetails, CertificateDocument, DeleteUserAccountRequest
+from accounts.models import User, Address, CompanyInformation, AccountManager, CertificateDocument, DeleteUserAccountRequest
 from accounts.tasks import check_and_update_user_delete_request_task, initiate_account_verification
 from accounts.utils import match_re, generate_username
 from authorization.role_list import (
@@ -66,7 +66,7 @@ class CompanyInformationSerializer(ModelSerializer):
         return status, company_information
 
 
-class AccountManagerDetailsSerializer(Serializer):
+class AccountManagerSerializer(Serializer):
     first_name = CharField(required=True)
     last_name = CharField(required=True)
     email = CharField(required=True)
@@ -91,7 +91,7 @@ class AccountManagerDetailsSerializer(Serializer):
             }
         )
         account_manager_status, account_manager = db_create_record(
-            model=AccountManagerDetails,
+            model=AccountManager,
             data={
                 'user': user,
                 'title': validated_data['title'],

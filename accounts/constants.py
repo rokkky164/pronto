@@ -145,6 +145,9 @@ COMPANY_INFORMATION_NOT_FOUND = "Company Information not found."
 
 ACCOUNT_MANAGER_CREATION_SUCCESS = 'Account Manager created successfully.'
 ACCOUNT_MANAGER_CREATION_FAILED = "Account Manager creation failed."
+ACCOUNT_MANAGER_FETCH_SUCCESS = 'Account Manager fetched successfully.'
+ACCOUNT_MANAGER_NOT_FOUND = "Account Manager not found."
+
 EITHER_MOBILE_OR_EMAIL_REQUIRED = "Either Mobile number or Email is required."
 PROVIDED_ROLE_DOES_NOT_EXIST = "Provided role doesn't exist."
 GRADE_FIELD_REQUIRED_STUDENT = "Grade/Degree field is required for student user."

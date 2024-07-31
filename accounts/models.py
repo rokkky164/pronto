@@ -179,7 +179,7 @@ class CompanyInformation(Model):
         return f"{self.pk}: {self.name}"
 
 
-class AccountManagerDetails(Model):
+class AccountManager(Model):
     user = ForeignKey(User, on_delete=CASCADE)
     title = CharField(_('Title'), max_length=100)
     department = CharField(_('Department'), max_length=100)
