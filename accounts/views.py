@@ -69,6 +69,7 @@ from accounts.permissions import UserPermission, CanChangeEmail, IsActive
 from accounts.serializers import (
     CompanyInformationSerializer,
     AccountManagerSerializer,
+    AccountManagerDetailsSerializer,
     PasswordChangeSerializer,
     PasswordResetSerializer,
     PasswordVerifySerializer,
@@ -152,7 +153,7 @@ class AccountManagerDetailsView(generics.GenericAPIView):
         status, account_manager = self.get_object(*args, **kwargs)
         if not status:
             return create_response(message=ACCOUNT_MANAGER_NOT_FOUND)
-        serializer = self.get_serializer(instance=account_manager)
+        serializer = AccountManagerDetailsSerializer(instance=account_manager)
         return create_response(success=True, message=ACCOUNT_MANAGER_FETCH_SUCCESS, data=serializer.data)
 
     @atomic()
@@ -223,7 +224,7 @@ class PasswordViewSet(ViewSet):
     View to reset password for authenticated and anonymous users
     """
 
-    @action(detail=False, url_path='change', methods=['post'])
+    @action(detail=False, url_path='change', methods=['post'], permission_classes=[IsAuthenticated, IsActive])
     def change(self, request):
         """
         Method which changes password for authenticated user

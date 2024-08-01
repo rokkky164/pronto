@@ -26,6 +26,7 @@ from accounts.constants import (
 from accounts.models import User, Address, CompanyInformation, AccountManager, CertificateDocument, DeleteUserAccountRequest
 from accounts.tasks import check_and_update_user_delete_request_task, initiate_account_verification
 from accounts.utils import match_re, generate_username
+from accounts.db_interactors import db_update_password
 from authorization.role_list import (
     BUYER, SUPPLIER, DISTRIBUTOR, ADMIN, TRADEPRONTO_ADMIN
 )
@@ -101,6 +102,17 @@ class AccountManagerSerializer(Serializer):
         return account_manager_status, account_manager
 
 
+class AccountManagerDetailsSerializer(ModelSerializer):
+    first_name = CharField(source='user.first_name', read_only=True)
+    last_name = CharField(source='user.last_name', read_only=True)
+    email = CharField(source='user.email', read_only=True)
+    phone = CharField(source='user.mobile_number', read_only=True)
+
+    class Meta:
+        model = AccountManager
+        fields = ('first_name', 'last_name', 'email', 'phone', 'title', 'department')
+
+
 class CertificateDocumentSerializer(ModelSerializer):
     
     class Meta:
@@ -161,13 +173,13 @@ class PasswordChangeSerializer(serializers.Serializer):
     """
     Serializer to save new password for user
     """
-    current_password = serializers.CharField(
+    old_password = serializers.CharField(
         required=True
     )
-    password_1 = serializers.CharField(
+    new_password = serializers.CharField(
         required=True
     )
-    password_2 = serializers.CharField(
+    confirm_password = serializers.CharField(
         required=True
     )
 
@@ -178,10 +190,10 @@ class PasswordChangeSerializer(serializers.Serializer):
         return value
 
     def validate(self, attrs):
-        if attrs.get('password_1') != attrs.get('password_2'):
+        if attrs.get('new_password') != attrs.get('confirm_password'):
             raise serializers.ValidationError(BOTH_PASSWORD_MUST_SAME)
         
-        if attrs.get('current_password') == attrs.get('password_1'):
+        if attrs.get('old_password') == attrs.get('new_password'):
             raise serializers.ValidationError(NEW_PASSWORD_SAME_AS_CURRENT_PASSWORD)
 
         # Temporary Commented
@@ -192,7 +204,7 @@ class PasswordChangeSerializer(serializers.Serializer):
         if not user:
             raise ValueError(USER_OBJECT_NOT_PROVIDED)
 
-        password = attrs.get('password_1')
+        password = attrs.get('new_password')
         errors = dict()
 
         try:
@@ -210,8 +222,7 @@ class PasswordChangeSerializer(serializers.Serializer):
 
         if not user:
             raise ValueError(USER_OBJECT_NOT_PROVIDED)
-
-        return change_password_service(user=user, password=validated_data['password_1'])
+        return db_update_password(user, validated_data['new_password'])
 
 
 class PasswordResetSerializer(serializers.Serializer):
