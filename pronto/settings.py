@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'catalog',
     'common',
     'common.location',
+    'notification',
     'utils',
     # 3rd party apps
     'corsheaders'
