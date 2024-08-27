@@ -51,10 +51,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_extensions',
     # developed apps
     'accounts',
     'authorization',
+    'catalog',
     'common',
+    'common.location',
     'utils',
     # 3rd party apps
     'corsheaders'
@@ -189,3 +192,8 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'pronto.exception_handler.custom_exception_handler',
     # 'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.NamespaceVersioning'
 }
+
+# Product Image Settings
+
+IMAGE_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png']
+MAX_PRODUCT_IMAGE_SIZE = 10000000  # 10 MB

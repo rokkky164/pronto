@@ -1,8 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db.models.fields.files import FieldFile
 
-from bulk_upload.constants import SPREADSHEET_MIME_TYPES, SPREADSHEET_MIME_NAMES
-from question.settings import IMAGE_MIME_TYPES, MAX_QUESTION_FILE_SIZE
+from pronto.settings import IMAGE_MIME_TYPES, MAX_PRODUCT_IMAGE_SIZE
 from utils.constants import INVALID_IMAGE_TYPE, INVALID_FILE_TYPE
 from utils.constants import MAX_FILE_SIZE_EXCEEDED
 from utils.helpers import calculate_file_size
@@ -34,8 +33,8 @@ def verify_excel_mime_type(file):
 def verify_excel_size(file):
     # Check whether file exceeds maximum file size.
     size = calculate_file_size(file=file)
-    if size >= MAX_QUESTION_FILE_SIZE:
-        raise ValidationError(MAX_FILE_SIZE_EXCEEDED.format(MAX_QUESTION_FILE_SIZE / 1000000))
+    if size >= MAX_PRODUCT_IMAGE_SIZE:
+        raise ValidationError(MAX_FILE_SIZE_EXCEEDED.format(MAX_PRODUCT_IMAGE_SIZE / 1000000))
 
 
 def verify_logo_mime_type(logo):

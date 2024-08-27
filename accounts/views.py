@@ -96,12 +96,6 @@ logger = logging.getLogger(__name__)
 
 
 class CompanyInformationView(generics.GenericAPIView):
-    """
-    OrderedDict([('name', 'Prep.Study'), ('tax_id', '12121'), ('annual_turnover', 'TILL_5M'), ('hq_location', 'Mumbai'), ('other_hubs', ['Poland']),
-     ('company_type', 'raw_producer'), ('product_categories', ['frozen', 'bev', 'alcohol']), ('vat_payer', '21'),
-      ('legal_address', 'House no 233, Infront of lic building, mandua')])
-
-    """
     queryset = CompanyInformation.objects.all()
     permission_classes = (AllowAny,)
     authentication_classes = []

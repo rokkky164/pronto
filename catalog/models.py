@@ -1,0 +1,129 @@
+import uuid
+
+from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
+from django.core.validators import (
+	RegexValidator, MinLengthValidator, MaxLengthValidator, MaxValueValidator, MinValueValidator
+)
+from django.db import models
+from django.db.models import QuerySet, Q, Model, OneToOneField, CASCADE, ManyToManyField, ForeignKey, SET_NULL, \
+	CharField, TextField, BooleanField, DateTimeField, UUIDField, TextChoices, EmailField, FileField, ImageField,\
+	IntegerField, DecimalField
+from django.utils.translation import gettext_lazy as _
+from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.fields import JSONField
+
+from accounts.models import Address
+from common.location.models import City, State, Country
+
+from utils.db_interactors import get_record_by_filters, db_get_family, get_single_record_by_filters, db_add_many_to_many_field_data
+from pronto.settings import IMAGE_MIME_TYPES, MAX_PRODUCT_IMAGE_SIZE
+from utils.validators import check_file_mime_type, check_file_size
+
+
+def verify_product_image_mime_type(image):
+	check_file_mime_type(file=image, mime_type_list=IMAGE_MIME_TYPES)
+
+
+def verify_product_image_size(logo):
+	check_file_size(file=logo, max_size=MAX_PRODUCT_IMAGE_SIZE)
+
+
+class Category(Model):
+	name = CharField(max_length=255)
+
+	def __str__(self):
+		return self.name
+
+
+class ProductConfig(Model):
+	is_in_stock = BooleanField(default=False)
+
+
+class Product(Model):
+	name = CharField(_('Product Name'), max_length=100)
+	brand_name = CharField(verbose_name=_("Brand Name"), max_length=100, blank=True, null=True)
+	category = ManyToManyField(Category, related_name='products', blank=True)
+	description = TextField(max_length=1000, help_text=_('Enter description'), blank=True, null=True)
+	advance_payment = CharField(_('Advance Payment'), max_length=20, null=True, blank=True)
+	weight_per_volume = CharField(_('Weight/Volume'), max_length=20, null=True, blank=True)
+	shelf_life = IntegerField(_('Shelf Life in days'), null=True, blank=True)
+	packaging_details = TextField(max_length=1000, help_text=_('Packaging details'), blank=True, null=True)
+	grade = CharField(_('Grade'), max_length=10, null=True, blank=True)
+	bar_code = CharField(_('Bar Code'), max_length=20, null=True, blank=True)
+	bar_code_type = CharField(_('Bar Code Type'), max_length=10, null=True, blank=True)
+	certificates = ForeignKey('accounts.CertificateDocument', on_delete=CASCADE)
+	created = DateTimeField(auto_now_add=True)
+	updated = DateTimeField(auto_now=True)
+
+	def __str__(self):
+		return f'{self.pk}: {self.name()}'
+
+
+class Manufacturer(Model):
+	name = CharField(_('Manufacturer Name'), max_length=100)
+	address = ForeignKey(Address, on_delete=models.CASCADE)
+	ingredients = TextField(max_length=1000, help_text=_('Enter ingredients'), blank=True, null=True)
+	annual_production_size = CharField(_('Annual Production Size'), max_length=50, null=True, blank=True)
+	quantity_available_per_month = CharField(_('Quantity Available Per Month'), max_length=50, null=True, blank=True)
+	lead_time = CharField(_('Lead Time'), max_length=50, null=True, blank=True)
+	quantity_available_today = CharField(_('Quantity Available Today'), max_length=50, null=True, blank=True)
+	incoterms = CharField(_('Incoterms'), max_length=50, null=True, blank=True)
+
+
+class ProductReview(Model):
+	buyer_name = CharField(_('Buyer Name'), max_length=100)
+	review = TextField(max_length=1000, blank=True, null=True)
+	created = DateTimeField(auto_now_add=True)
+	updated = DateTimeField(auto_now=True)
+
+
+class ProductRatings(Model):
+	buyer_name = CharField(_('Buyer Name'), max_length=100)
+	rating = DecimalField(max_digits=1, decimal_places=1, default=0.0)
+	created = DateTimeField(auto_now_add=True)
+	updated = DateTimeField(auto_now=True)
+
+
+class ProductImages(Model):
+	product = ForeignKey(Product, on_delete=CASCADE, related_name='product_images')
+	image = ImageField(blank=True, null=True, validators=[verify_product_image_mime_type, verify_product_image_size])
+
+	def __str__(self):
+		return f'{self.id}'
+
+
+class ShippingAndOrdering(Model):
+	class ShippingTerms(TextChoices):
+		PENDING = 'P', _('Pending')
+		FAILED = 'F', _('Failed')
+		DONE = 'D', _('Done')
+
+	class PaymentTerms(TextChoices):
+		BATCH = 'B', _('Batch')
+		EXAM = 'E', _('Exam')
+		QUESTION_PAPER = 'QP', _('Question_Paper')
+
+	class ShippingModes(TextChoices):
+		BATCH = 'B', _('Batch')
+		EXAM = 'E', _('Exam')
+		QUESTION_PAPER = 'QP', _('Question_Paper')
+
+	class PalletsTypes(TextChoices):
+		BATCH = 'B', _('Batch')
+		EXAM = 'E', _('Exam')
+		QUESTION_PAPER = 'QP', _('Question_Paper')
+
+	moq = CharField(_('MOQ per Month'), max_length=50)
+	max_size_first_shipment = CharField(_('Max Size First Shipment'), max_length=50)
+	ltl_available = BooleanField(default=False)
+	lead_time_first_shipment = CharField(_('Lead Time First Shipment'), max_length=50)
+	annual_production = CharField(_('Annual Production'), max_length=50)
+	quantity_in_the_box = CharField(_('Quantity in the box'), max_length=50)
+	min_no_boxes_pallet = CharField(_('Min No of boxes on pallet'), max_length=50, null=True, blank=True)
+	max_no_boxes_pallet = CharField(_('Max No of boxes on pallet'), max_length=50, null=True, blank=True)
+	max_no_items_in_full_40_inch_container = CharField(_('Max no of boxes in full 40 inch container'), max_length=50, null=True, blank=True)
+	payment_terms = CharField(_('Payment terms'), choices=PaymentTerms.choices, max_length=100, null=True, blank=True)
+	shipment_terms = CharField(_('Shipment terms'), choices=ShippingTerms.choices, max_length=100, null=True, blank=True)
+	shipping_modes = CharField(_('Shipment Modes'), choices=ShippingModes.choices, max_length=100, null=True, blank=True)
+	types_of_pallets_used = CharField(_('Types of Pallets used'), choices=PalletsTypes.choices, max_length=100, null=True, blank=True)
