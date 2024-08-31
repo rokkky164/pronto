@@ -12,8 +12,10 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 import environ
-import os
+import os, sys
 import sentry_sdk
+import dj_database_url
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 from celery.schedules import crontab
 from django.utils import timezone
@@ -38,10 +40,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-in%twu1$pc()je&1-=l07=1fc4@wmp4h)w(m!0qi!r7e$g9$3d'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
+DEVELOPMENT_MODE = os.getenv("DEVELOPMENT_MODE", "False") == "True"
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS').split(',')
 
 # Application definition
 
@@ -100,16 +102,25 @@ WSGI_APPLICATION = 'pronto.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'pronto',
-        'USER': 'postgres',
-        'PASSWORD': 'pwd',
-        'HOST': 'localhost'
-    }
-}
 
+if DEVELOPMENT_MODE is True:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+            'NAME': 'pronto',
+            'USER': 'postgres',
+            'PASSWORD': 'pwd',
+            'HOST': 'localhost'
+        }
+    }
+elif len(sys.argv) > 0 and sys.argv[1] != 'collectstatic':
+    if os.getenv("DATABASE_URL", None) is None:
+        raise Exception("DATABASE_URL environment variable not defined")
+    DATABASES = {
+        "default": dj_database_url.parse(os.environ.get("DATABASE_URL")),
+    }
+    # postgresql://USER:PASSWORD@HOST:PORT/NAME
+    
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
 
