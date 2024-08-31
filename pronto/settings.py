@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 import environ
+import os
 import sentry_sdk
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 from celery.schedules import crontab
