@@ -9,7 +9,7 @@ from rest_framework import serializers
 from rest_framework.fields import SerializerMethodField
 from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import Serializer, ModelSerializer, CharField, ChoiceField, IntegerField, EmailField, \
-    SlugRelatedField
+    SlugRelatedField, FileField, ListField
 from rest_framework.validators import UniqueValidator
 from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -519,3 +519,21 @@ class SendDeleteRequestSerializer(ModelSerializer):
         validated_data['hostname'] = self.context.get('hostname')
         validated_data.pop('email')
         return send_delete_account_request_service(**validated_data)
+
+
+class InsuranceCertificateFileSerializer(Serializer):
+    insurance_certificate = FileField(required=True)
+
+
+class VideoFileSerializer(Serializer):
+    video = FileField(required=True)
+
+
+class ISOAndOtherFileSerializer(Serializer):
+    file = FileField(required=True)
+
+
+class CertificateDocumentSerializer(Serializer):
+    insurance_certificates = ListField(child=InsuranceCertificateFileSerializer(), min_length=0, max_length=5)
+    videos = ListField(child=VideoFileSerializer(), min_length=0, max_length=5)
+    iso_and_other_certs = ListField(child=ISOAndOtherFileSerializer(), min_length=0, max_length=5)

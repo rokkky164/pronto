@@ -42,7 +42,6 @@ SECRET_KEY = 'django-insecure-in%twu1$pc()je&1-=l07=1fc4@wmp4h)w(m!0qi!r7e$g9$3d
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 DEVELOPMENT_MODE = os.getenv("DEVELOPMENT_MODE", "False") == "True"
-
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 
 # Application definition
@@ -176,7 +175,7 @@ CORS_ORIGIN_ALLOW_ALL = True
 
 DEFAULT_FROM_EMAIL = "hansdah.roshan@gmail.com"
 SERVER_EMAIL = "hansdah.roshan@gmail.com"
-BACK_END_HOST = env('BACK_END_HOST', default='https://.tradepronto.com/api')
+BACK_END_HOST = env('BACK_END_HOST', default='https://tradepronto.com/api')
 URL_PREFIX = env('URL_PREFIX', default='https://')
 RESEND_NOTIFICATION_EMAIL_TIME = int(env('RESEND_NOTIFICATION_EMAIL_TIME', default=5))  # Minutes
 DELETE_USER_ACCOUNT_DAYS = int(env('DELETE_USER_ACCOUNT_DAYS', default=7))  # Minutes

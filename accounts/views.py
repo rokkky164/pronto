@@ -54,7 +54,11 @@ from accounts.constants import (
     USER_BY_EMAIL_URL_NAME,
     USER_BY_EMAIL_FETCH_SUCCESS, DELETE_ACCOUNT_REQUEST_URL, DELETE_ACCOUNT_REQUEST_URL_NAME,
     DELETE_USER_ACCOUNT_REQUEST_SUCCESS, SEND_DELETE_REQUEST_EMAIl_URL, SEND_DELETE_REQUEST_EMAIl_URL_NAME,
-    SEND_DELETE_REQUEST_EMAIL_SUCCESS
+    SEND_DELETE_REQUEST_EMAIL_SUCCESS,
+    UPLOAD_CERTIFICATE_URL_NAME,
+    UPLOAD_CERTIFICATE_URL,
+    UPLOAD_CERTIFICATE_SUCCESS,
+    UPLOAD_CERTIFICATE_FAIL
 )
 # from accounts.filtersets import UserFilterSet
 from accounts.utils import get_device_type
@@ -479,6 +483,16 @@ class UserViewSet(
         if not status:
             return create_response(message=response)
         return create_response(success=True, message=SEND_DELETE_REQUEST_EMAIL_SUCCESS)
+
+    @action(detail=True ,methods=['post'], url_name=UPLOAD_CERTIFICATE_URL_NAME, url_path=UPLOAD_CERTIFICATE_URL)
+    def upload_certs_n_videos(self, request, *args, **kwargs):
+        import pdb;pdb.set_trace()
+        serializer = CertificateDocumentSerializer(data=request.data, files=request.FILES)
+        if serializer.is_valid():
+            # TO DO
+
+            return create_response(success=True, message=UPLOAD_CERTIFICATE_SUCCESS)
+        return create_response(message=UPLOAD_CERTIFICATE_FAIL, data=serializer.errors)
 
 
 class CustomLoginView(generics.GenericAPIView):

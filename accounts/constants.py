@@ -34,6 +34,9 @@ DELETE_ACCOUNT_REQUEST_URL_NAME = 'delete-account-request'
 SEND_DELETE_REQUEST_EMAIl_URL = 'send-delete-email'
 SEND_DELETE_REQUEST_EMAIl_URL_NAME = 'send-delete-email'
 
+UPLOAD_CERTIFICATE_URL_NAME = 'upload-certificates'
+UPLOAD_CERTIFICATE_URL = 'upload-certificates'
+
 """
 URL end
 """
@@ -219,6 +222,11 @@ COUNTRY_STATE_CITY_HIERARCHY_DO_NOT_MATCH = 'Country, State and City hierarchy d
 SEND_MAIL_FOR_REGISTRATION_SUCCESS = 'Mail was sent successfully to user.'
 UNABLE_TO_SEND_MAIL_FOR_REGISTRATION = 'Unable to send mail to the user.'
 USER_CREDS_SENT_SUCCESS = 'User credentials have been sent successfully.'
+
+# Upload certicates
+UPLOAD_CERTIFICATE_SUCCESS = 'Certicates are uploaded successfully.'
+UPLOAD_CERTIFICATE_FAIL = 'Failed to upload certicates.'
+
 
 # Temp files folder
 # TEMP_FOLDER_FOR_STUDENTS = "media/bulk_upload/STUDENT/temp_file"
