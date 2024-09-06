@@ -58,7 +58,7 @@ def initiate_account_verification(user_id: int):
             'code': account_verification_request.verification_code
         }
         notification_mail(
-            email_template='email/accounts/initiate_account_verification_template.html',
+            email_template='email/initiate_account_verification_template.html',
             subject=ACCOUNT_ACTIVATION_MAIL_SUBJECT,
             body=body,
             recipient_list=[f"{user.get_full_name()} <{user.email}"],

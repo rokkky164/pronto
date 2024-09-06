@@ -164,6 +164,7 @@ class AccountManagerDetailsView(generics.GenericAPIView):
             'last_name': request_data['last_name'],
             'email': request_data['email'],
             'phone': request_data['phone'],
+            'role': request_data['role'],
             'title': request_data['title'],
             'department': request_data['department']
         }
@@ -486,7 +487,6 @@ class UserViewSet(
 
     @action(detail=True ,methods=['post'], url_name=UPLOAD_CERTIFICATE_URL_NAME, url_path=UPLOAD_CERTIFICATE_URL)
     def upload_certs_n_videos(self, request, *args, **kwargs):
-        import pdb;pdb.set_trace()
         serializer = CertificateDocumentSerializer(data=request.data, files=request.FILES)
         if serializer.is_valid():
             # TO DO

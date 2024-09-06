@@ -72,6 +72,7 @@ class AccountManagerSerializer(Serializer):
     last_name = CharField(required=True)
     email = CharField(required=True)
     phone = CharField(required=True)
+    role = CharField(required=True)
     title = CharField(required=True)
     department = CharField(required=True)
 
@@ -81,6 +82,7 @@ class AccountManagerSerializer(Serializer):
         return attrs
     
     def create(self, validated_data):
+        _, role = get_single_record_by_filters(model=Role, filters={'name': validated_data['role']})
         status, user = db_create_record(
             model=User,
             data={
@@ -88,6 +90,7 @@ class AccountManagerSerializer(Serializer):
                 'last_name': validated_data['last_name'],
                 'email': validated_data['email'],
                 'mobile_number': validated_data['phone'],
+                'role': role,
                 'username': generate_username(validated_data['first_name'], validated_data['last_name'], validated_data['email'])
             }
         )
@@ -107,10 +110,11 @@ class AccountManagerDetailsSerializer(ModelSerializer):
     last_name = CharField(source='user.last_name', read_only=True)
     email = CharField(source='user.email', read_only=True)
     phone = CharField(source='user.mobile_number', read_only=True)
-
+    role = CharField(source='user.role.name', read_only=True)
+    
     class Meta:
         model = AccountManager
-        fields = ('first_name', 'last_name', 'email', 'phone', 'title', 'department')
+        fields = ('first_name', 'last_name', 'email', 'phone', 'role', 'title', 'department')
 
 
 class CertificateDocumentSerializer(ModelSerializer):

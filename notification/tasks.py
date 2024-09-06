@@ -2,7 +2,7 @@ from logging import getLogger
 
 from notification.constants import EMAIL_HISTORY_STATUS
 from notification.models import EmailHistory
-from utils.interactors import get_record_by_filters, db_update_instance
+from utils.db_interactors import get_record_by_filters, db_update_instance
 from utils.tasks import base_task
 
 logger = getLogger(__name__)
