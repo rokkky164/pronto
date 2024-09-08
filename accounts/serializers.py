@@ -117,23 +117,13 @@ class AccountManagerDetailsSerializer(ModelSerializer):
         fields = ('first_name', 'last_name', 'email', 'phone', 'role', 'title', 'department')
 
 
-class CertificateDocumentSerializer(ModelSerializer):
+# class CertificateDocumentSerializer(ModelSerializer):
     
-    class Meta:
-        model = CertificateDocument
-        fields = ('name', 'document_no', 'document', 'status')
+#     class Meta:
+#         model = CertificateDocument
+#         fields = ('name', 'document_no', 'document', 'status')
 
-    def create(self, validated_data):
-        status, certificate_document = db_create_record(
-            model=CertificateDocument,
-            data={
-                'name': validated_data['name'],
-                'document_no': validated_data['document_no'],
-                'document': validated_data['document'],
-                'status': validated_data['status']
-            }
-        )
-        return status, certificate_document
+
 
 
 class PasswordSetSerializer(serializers.Serializer):
@@ -486,13 +476,6 @@ class LoginDetailSerializer(serializers.ModelSerializer):
             return obj.role.label
         return None
 
-    def get_institute(self, obj):
-        institutes = obj.get_institutes()
-        if institutes:
-            institute = institutes.last()
-            return {'id': institute.id, 'name': institute.name, 'is_editable': False}
-        return None
-
     class Meta:
         model = User
         fields = (
@@ -525,19 +508,30 @@ class SendDeleteRequestSerializer(ModelSerializer):
         return send_delete_account_request_service(**validated_data)
 
 
-class InsuranceCertificateFileSerializer(Serializer):
-    insurance_certificate = FileField(required=True)
-
-
-class VideoFileSerializer(Serializer):
-    video = FileField(required=True)
-
-
-class ISOAndOtherFileSerializer(Serializer):
-    file = FileField(required=True)
-
-
 class CertificateDocumentSerializer(Serializer):
-    insurance_certificates = ListField(child=InsuranceCertificateFileSerializer(), min_length=0, max_length=5)
-    videos = ListField(child=VideoFileSerializer(), min_length=0, max_length=5)
-    iso_and_other_certs = ListField(child=ISOAndOtherFileSerializer(), min_length=0, max_length=5)
+    certificates = ListField(child=FileField(required=True), min_length=0, max_length=5)
+    videos = ListField(child=FileField(required=True), min_length=0, max_length=5)
+
+    def create(self, validated_data):
+        certificate_document = None
+        videos = None
+        for each_file in validated_data['certificates']:
+            status, certificate_document = db_create_record(
+                model=CertificateDocument,
+                data={
+                    'name': each_file.name,
+                    'document': each_file
+                }
+            )
+        for each_file in validated_data['videos']:
+            status, videos = db_create_record(
+                model=CertificateDocument,
+                data={
+                    'name': each_file.name,
+                    'document': each_file
+                }
+            )
+        if certificate_document:
+            return certificate_document
+        if videos:
+            return videos

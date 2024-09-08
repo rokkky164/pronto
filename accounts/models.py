@@ -204,7 +204,7 @@ class CertificateDocument(Model):
     name = CharField(_('Name'), choices=Name.choices, max_length=50)
     document_no = CharField(_('Document Number'), max_length=50, null=True, blank=True)
     document = FileField(validators=[verify_document_mime_type, verify_document_size], null=True, blank=True)
-    status = CharField(_('Status'), choices=Status.choices, max_length=50)
+    status = CharField(_('Status'), choices=Status.choices, max_length=50, default=Status.SAVED)
     
     def __str__(self):
         return f"{self.pk}: {self.name}"

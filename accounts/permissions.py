@@ -40,16 +40,6 @@ class UserPermission(BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.user.is_prep_study_admin():
             return True
-
-        if view.action == 'update':
-            if request.user.id == obj.id:
-                return True
-
-            user_institute = request.user.institute()
-            if (request.user.is_institute_admin() or request.user.is_corporate_admin() or request.user.is_branch_admin()
-                    or request.user.is_hr_head()) and user_institute and user_institute in request.user.get_branches():
-                return True
-
         return False
 
 

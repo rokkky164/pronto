@@ -82,7 +82,8 @@ from accounts.serializers import (
     CustomTokenRefreshSerializer,
     UserSessionSerializer,
     UserEnvironmentDetailsSerializer,
-    LoginDetailSerializer
+    LoginDetailSerializer,
+    CertificateDocumentSerializer
 )
 from accounts.tasks import resend_verification_code, initiate_account_verification, set_user_environment_session
 
@@ -485,12 +486,12 @@ class UserViewSet(
             return create_response(message=response)
         return create_response(success=True, message=SEND_DELETE_REQUEST_EMAIL_SUCCESS)
 
-    @action(detail=True ,methods=['post'], url_name=UPLOAD_CERTIFICATE_URL_NAME, url_path=UPLOAD_CERTIFICATE_URL)
-    def upload_certs_n_videos(self, request, *args, **kwargs):
-        serializer = CertificateDocumentSerializer(data=request.data, files=request.FILES)
+    @action(detail=False ,methods=['post'], url_name=UPLOAD_CERTIFICATE_URL_NAME, url_path=UPLOAD_CERTIFICATE_URL,
+            permission_classes=[IsAuthenticated, IsActive])
+    def upload_certs_and_videos(self, request, *args, **kwargs):
+        serializer = CertificateDocumentSerializer(data=request.data)
         if serializer.is_valid():
-            # TO DO
-
+            serializer.save()
             return create_response(success=True, message=UPLOAD_CERTIFICATE_SUCCESS)
         return create_response(message=UPLOAD_CERTIFICATE_FAIL, data=serializer.errors)
 
@@ -502,28 +503,10 @@ class CustomLoginView(generics.GenericAPIView):
 
     @atomic()
     def post(self, request, *args, **kwargs):
-        # Assign batch to user
-        bid = request.data.get('bid')
-        iid = request.data.get('iid')
-        is_corporate = request.data.get('is_corporate', False)
-        open_batch_invitation = request.data.get('open_batch_invitation', False)
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             data = serializer.save()
             user = data['user']
-            # env_session_data = {
-            #     'user_id': user.id,
-            #     'os': request.user_agent.os.family,
-            #     'os_version': request.user_agent.os.version_string,
-            #     'ip_address': request.META.get('HTTP_X_FORWARDED_FOR'),
-            #     'browser': request.user_agent.browser.family,
-            #     'browser_version': request.user_agent.browser.version_string,
-            #     'device_type': get_device_type(user_agent=request.user_agent),
-            #     'device': request.user_agent.device.family,
-            #     'token': data['refresh'],
-            # }
-            # set_user_environment_session.apply_async(kwargs=env_session_data, eta=now())
-
             data['user'] = LoginDetailSerializer(user).data
             return create_response(success=True, message=LOGIN_SUCCESS, data=data)
         return create_response(message=serializer.errors)

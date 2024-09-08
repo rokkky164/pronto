@@ -133,7 +133,7 @@ DEFAULT_SUPPORT_EMAIL = "support@prep.study"
 DEFAULT_ORGANIZATION_NAME = 'PrepStudy!'
 DEFAULT_ORG_LOGO_URL = ('https://hs-8886753.f.hubspotemail.net/hs/hsstatic/TemplateAssets/static-1.60/img/'
                         'hs_default_template_images/email_dnd_template_images/ThankYou-Flower.png')
-MAILGUN_DOMAIN = "@prep.study"
+MAILGUN_DOMAIN = "@pinakasolutions.com"
 """
 Mail End
 """
@@ -208,7 +208,7 @@ ISO_DATE_FORMAT = "%Y-%m-%d"
 """
 Bucket start
 """
-DATA_MIGRATION_BUCKET = 'prepstudy-migration-data'
+DATA_MIGRATION_BUCKET = 'pinakasolutions-migration-data'
 """
 Bucket end
 """
