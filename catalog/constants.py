@@ -1,0 +1,1 @@
+CATALOG_PERMISSION_ERROR_MESSAGE = 'You do not have permission to perform this action on catalog endpoint.'

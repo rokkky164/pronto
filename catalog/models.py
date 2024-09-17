@@ -74,7 +74,7 @@ class ProductConfig(Model):
 
 class SupplierProducts(Model):
 	product = ForeignKey(Product, on_delete=models.CASCADE)
-	supplier = ForeignKey('accounts.User', on_delete=models.CASCADE)
+	supplier = ForeignKey('accounts.CompanyInformation', on_delete=models.CASCADE)
 
 
 class Manufacturer(Model):
@@ -107,7 +107,7 @@ class ProductImages(Model):
 	image = ImageField(blank=True, null=True, validators=[verify_product_image_mime_type, verify_product_image_size])
 
 	def __str__(self):
-		return f'{self.id}'
+		return f'{self.id}-{self.product.name}'
 
 
 class ShippingAndOrdering(Model):
