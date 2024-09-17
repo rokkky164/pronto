@@ -55,7 +55,7 @@ class Product(Model):
 	updated = DateTimeField(auto_now=True)
 
 	def __str__(self):
-		return f'{self.pk}: {self.name()}'
+		return f'{self.pk}: {self.name}'
 
 
 class ProductVariant(Model):
@@ -65,6 +65,9 @@ class ProductVariant(Model):
 	quantity_per_carton = CharField(_('Quantity/Carton'), max_length=20, null=True, blank=True)
 	quantity_of_bottles_per_pallete = CharField(_('Quantity/allete'), max_length=20, null=True, blank=True)
 	volume = CharField(_('Volume'), max_length=20, null=True, blank=True)
+	
+	def __str__(self):
+		return f'{self.product.name}'
 
 
 class ProductConfig(Model):
@@ -91,6 +94,7 @@ class Manufacturer(Model):
 class ProductReview(Model):
 	buyer_name = CharField(_('Buyer Name'), max_length=100)
 	review = TextField(max_length=1000, blank=True, null=True)
+	product = ForeignKey(Product, on_delete=models.CASCADE)
 	created = DateTimeField(auto_now_add=True)
 	updated = DateTimeField(auto_now=True)
 
@@ -98,6 +102,7 @@ class ProductReview(Model):
 class ProductRatings(Model):
 	buyer_name = CharField(_('Buyer Name'), max_length=100)
 	rating = DecimalField(max_digits=1, decimal_places=1, default=0.0)
+	product = ForeignKey(Product, on_delete=models.CASCADE)
 	created = DateTimeField(auto_now_add=True)
 	updated = DateTimeField(auto_now=True)
 
@@ -127,9 +132,15 @@ class ShippingAndOrdering(Model):
 		QUESTION_PAPER = 'QP', _('Question_Paper')
 
 	class PalletsTypes(TextChoices):
-		BATCH = 'B', _('Batch')
-		EXAM = 'E', _('Exam')
-		QUESTION_PAPER = 'QP', _('Question_Paper')
+		EUROPEAN_PALLET = 'EP', _('European Pallet')
+		NORTHAMERICAN_PALLET = 'NP', _('North American Pallet')
+		AUSTRALIAN_STANDARD_PALLET = 'AP', _('Australian Standard Pallet')
+		ISO_PALLET = 'IP', _('ISO Pallet')
+		UK_PALLET = 'UP', _('UK Pallet')
+		ASIA_PACIFIC_PALLET = 'APP', _('Asia-Pacific Pallet')
+		CHEP_PALLET  = 'CP', _(' CHEP Pallets ')
+		ISPM_15 = 'ISP', _('ISPM 15')
+		CANADIAN_PALLET  = 'CAP', _('Canadian Pallet')
 
 	moq = CharField(_('MOQ per Month'), max_length=50)
 	max_size_first_shipment = CharField(_('Max Size First Shipment'), max_length=50)
@@ -144,3 +155,4 @@ class ShippingAndOrdering(Model):
 	shipment_terms = CharField(_('Shipment terms'), choices=ShippingTerms.choices, max_length=100, null=True, blank=True)
 	shipping_modes = CharField(_('Shipment Modes'), choices=ShippingModes.choices, max_length=100, null=True, blank=True)
 	types_of_pallets_used = CharField(_('Types of Pallets used'), choices=PalletsTypes.choices, max_length=100, null=True, blank=True)
+	product = ForeignKey(Product, on_delete=CASCADE, related_name='product')
