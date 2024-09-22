@@ -8,7 +8,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.mixins import CreateModelMixin, ListModelMixin, UpdateModelMixin, DestroyModelMixin
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
+
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
@@ -17,7 +18,7 @@ from utils.db_interactors import get_record_by_filters, get_record_by_id, get_si
     get_select_related_object_list
 from .constants import (
     ANSWER_SUBMISSION_SUCCESS,
-    EXAM_CREATE_SUCCESS
+    PRODUCT_CREATE_SUCCESS
 )
 from .filtersets import ExamFilterSet, ExamCreationRequestFilterSet
 from .models import (
@@ -132,15 +133,11 @@ class ProductViewSet(GenericViewSet, CreateModelMixin, ListModelMixin, UpdateMod
                 set_rollback(True)
                 return create_response(message=serializer.errors)
 
-        validated_data['question_set_data_serialized'] = data.get('question_set_data')
-        validated_data['topic_ids'] = data.get('topics', [])
-        validated_data['selected_questions'] = data.get('selected_questions', [])
-
         status, response = exam_serializer.create(validated_data)
         if not status:
             set_rollback(True)
             return create_response(message=response)
-        return create_response(message=EXAM_CREATE_SUCCESS, success=True, data={'exam': response})
+        return create_response(message=PRODUCT_CREATE_SUCCESS, success=True, data={'exam': response})
 
     def list(self, request, *args, **kwargs):
         page = request.GET.get('page')
@@ -210,8 +207,8 @@ class ProductViewSet(GenericViewSet, CreateModelMixin, ListModelMixin, UpdateMod
         return create_response(success=True, message=DELETE_EXAM_SUCCESS)
 
 
-class ExamCreationRequestViewSet(ModelViewSet):
-    permission_classes = [ExamCreationRequestPermission]
+class ProductReviewViewSet(ModelViewSet):
+    permission_classes=[IsAuthenticated]
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = ExamCreationRequestFilterSet

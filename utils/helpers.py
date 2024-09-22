@@ -187,8 +187,8 @@ def notification_mail(
         raise SMTPException()
 
 
-def get_in_memory_file_upload(file_name=None, file_path=None, mime_type=None, file_format=None):
-    image = Image.open(file_path).convert('RGB').resize((800, 800), Image.ANTIALIAS)
+def get_in_memory_file_upload(image, file_name=None, mime_type=None, file_format=None):
+    # image = Image.open(file_path).convert('RGB').resize((800, 800), Image.ANTIALIAS)
     output = BytesIO()
     image.save(output, format=str.upper(file_format), quality=85)
     output.seek(0)
@@ -293,3 +293,7 @@ def create_directory_if_not_exists(directory_path):
         except OSError as error:
             (logging.getLogger(__name__ + 'create_directory_if_not_exists')
              .info(f"Error creating directory '{directory_path}': {error}"))
+
+
+def catalog_directory_path(instance, filename):
+    return "catalog/{}/{}".format(instance.id, filename)

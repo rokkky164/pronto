@@ -58,3 +58,27 @@ class ProductFilterSet(FilterSet):
     subject = BaseInFilter(field_name='question_paper__question_sets__subject', lookup_expr='in')
     topic = BaseInFilter(field_name='question_paper__question_sets__question_set_questions__topic', lookup_expr='in')
     institute = BaseInFilter(lookup_expr='in')
+
+
+class ProductReviewFilterSet(FilterSet):
+
+    status = MultipleChoiceFilter(choices=ProductReview.Status.choices)
+    assigned_by = BaseInFilter(field_name='assigned_by', lookup_expr='in')
+    due_date = IsoDateTimeFromToRangeFilter()
+    created_at = IsoDateTimeFromToRangeFilter()
+
+    class Meta:
+        model = ProductReview
+        fields = ['status', 'assigned_by', 'due_date', 'created_at']
+
+
+class ProductRatingsFilterSet(FilterSet):
+
+    status = MultipleChoiceFilter(choices=ProductRatings.Status.choices)
+    assigned_by = BaseInFilter(field_name='assigned_by', lookup_expr='in')
+    due_date = IsoDateTimeFromToRangeFilter()
+    created_at = IsoDateTimeFromToRangeFilter()
+
+    class Meta:
+        model = ProductRatings
+        fields = ['status', 'assigned_by', 'due_date', 'created_at']
