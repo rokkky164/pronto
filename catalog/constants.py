@@ -1,4 +1,5 @@
 CATALOG_PERMISSION_ERROR_MESSAGE = 'You do not have permission to perform this action on catalog endpoint.'
-
+PRODUCT_NOT_EXIST_ERROR = 'Product does not exist.'
 PRODUCT_CREATE_SUCCESS = 'Product Created Successfully.'
 PRODUCT_LIST_SUCCESS = 'Product list fetched Successfully.'
+PRODUCT_RETRIEVE_SUCCESS = 'Product details fetched Successfully.'

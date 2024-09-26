@@ -17,7 +17,7 @@ class ProductPermission(BasePermission):
     message = CATALOG_PERMISSION_ERROR_MESSAGE
 
     def has_permission(self, request, view):
-        if view.action in ['create', 'list']:
+        if view.action in ['create', 'list', 'retrieve', 'update']:
             return True
 
         return False

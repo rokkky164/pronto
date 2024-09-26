@@ -131,7 +131,6 @@ class Address(models.Model):
     Model to store user/company addresses
     """
     user = models.OneToOneField(User, on_delete=models.CASCADE, blank=False, null=False, related_name='address')
-
     address_line_1 = models.CharField(_('Address Line 1'), max_length=50, null=True, blank=True)
     address_line_2 = models.CharField(_('Address Line 2'), max_length=50, null=True, blank=True)
     city = models.ForeignKey(City, on_delete=models.PROTECT, null=False, blank=False)
@@ -183,9 +182,10 @@ class AccountManager(Model):
     user = ForeignKey(User, on_delete=CASCADE)
     title = CharField(_('Title'), max_length=100)
     department = CharField(_('Department'), max_length=100)
-    
+    company_info = ForeignKey(CompanyInformation, on_delete=models.CASCADE)
+
     def __str__(self):
-        return f"{self.pk}: {self.user.username}"
+        return f"{self.user.username}:{self.company_info.name}"
 
 
 class CertificateDocument(Model):

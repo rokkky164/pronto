@@ -26,7 +26,7 @@ EXCEL_HEADERS = [
     'Category Name',
     'Image',#X
     'Description',#X
-    'Advance payment',
+    'Advance payment(In %)',
     'Shelf life',
     'Packaging details',
     'Grade',
@@ -110,7 +110,7 @@ class Command(BaseCommand):
             product_data = {
                 'name': xl_dict[key]['Product Name'],
                 'description': xl_dict[key]['Description'],
-                'advance_payment': True if xl_dict[key]['Advance payment'] == 'Yes' else False,
+                'advance_payment': xl_dict[key]['Advance payment(In %)'],
                 'shelf_life': xl_dict[key]['Shelf life'],
                 'packaging_details': xl_dict[key]['Packaging details'],
                 'grade': xl_dict[key]['Grade'],
@@ -123,7 +123,7 @@ class Command(BaseCommand):
                 raise Exception(f'Error occured while creating entry in Product table {product}')
             image_cols = list(image_loader._images.keys())
             img = image_loader.get(image_cols[img_idx])
-            image = get_in_memory_file_upload(img, file_name=f"row_{img_idx}", mime_type="image/png", file_format="png")
+            image = get_in_memory_file_upload(img, file_name=f"row_{img_idx}.png", mime_type="image/png", file_format="png")
             image_data = {'image': image, 'product_id': product.id}
             img_idx += 1
             _, product_image = db_create_record(ProductImages, data=image_data)
