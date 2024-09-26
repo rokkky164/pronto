@@ -1,7 +1,7 @@
 from django.db.models import Q
 from rest_framework.permissions import BasePermission
 
-from utils.interactors import get_record_by_filters, db_check_existing_record
+from utils.db_interactors import get_record_by_filters, db_check_existing_record
 from .constants import CATALOG_PERMISSION_ERROR_MESSAGE
 from .models import (
     Product, Category, ProductVariant,
@@ -17,12 +17,10 @@ class ProductPermission(BasePermission):
     message = CATALOG_PERMISSION_ERROR_MESSAGE
 
     def has_permission(self, request, view):
-        if view.action in ['create']:
+        if view.action in ['create', 'list']:
             return True
 
         return False
 
     def has_object_permission(self, request, view, obj):
-        if request.user.is_prepstudy_admin():
-            return True
-        return False
+        return True

@@ -45,11 +45,8 @@ class ProductFilterSet(FilterSet):
 
     class Meta:
         model = Product
-        exclude = ['created', 'updated']
+        exclude = ['created', 'updated', 'additional_data']
 
-    status = MultipleChoiceFilter(choices=Exam.Status.choices, method='filter_status')
-    exam_type = BaseInFilter(field_name='exam_type', lookup_expr='in')
-    examination_type = MultipleChoiceFilter(choices=Exam.ExaminationType.choices)
     duration = RangeFilter()
     grade = BaseInFilter(field_name='grade', lookup_expr='in')
     batch = BaseInFilter(field_name='batch_exam_map__batch', lookup_expr='in')
@@ -60,25 +57,25 @@ class ProductFilterSet(FilterSet):
     institute = BaseInFilter(lookup_expr='in')
 
 
-class ProductReviewFilterSet(FilterSet):
+# class ProductReviewFilterSet(FilterSet):
 
-    status = MultipleChoiceFilter(choices=ProductReview.Status.choices)
-    assigned_by = BaseInFilter(field_name='assigned_by', lookup_expr='in')
-    due_date = IsoDateTimeFromToRangeFilter()
-    created_at = IsoDateTimeFromToRangeFilter()
+#     status = MultipleChoiceFilter(choices=ProductReview.Status.choices)
+#     assigned_by = BaseInFilter(field_name='assigned_by', lookup_expr='in')
+#     due_date = IsoDateTimeFromToRangeFilter()
+#     created_at = IsoDateTimeFromToRangeFilter()
 
-    class Meta:
-        model = ProductReview
-        fields = ['status', 'assigned_by', 'due_date', 'created_at']
+#     class Meta:
+#         model = ProductReview
+#         fields = ['status', 'assigned_by', 'due_date', 'created_at']
 
 
-class ProductRatingsFilterSet(FilterSet):
+# class ProductRatingsFilterSet(FilterSet):
 
-    status = MultipleChoiceFilter(choices=ProductRatings.Status.choices)
-    assigned_by = BaseInFilter(field_name='assigned_by', lookup_expr='in')
-    due_date = IsoDateTimeFromToRangeFilter()
-    created_at = IsoDateTimeFromToRangeFilter()
+#     status = MultipleChoiceFilter(choices=ProductRatings.Status.choices)
+#     assigned_by = BaseInFilter(field_name='assigned_by', lookup_expr='in')
+#     due_date = IsoDateTimeFromToRangeFilter()
+#     created_at = IsoDateTimeFromToRangeFilter()
 
-    class Meta:
-        model = ProductRatings
-        fields = ['status', 'assigned_by', 'due_date', 'created_at']
+#     class Meta:
+#         model = ProductRatings
+#         fields = ['status', 'assigned_by', 'due_date', 'created_at']

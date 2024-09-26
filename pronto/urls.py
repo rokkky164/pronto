@@ -27,5 +27,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('accounts.urls', namespace='accounts')),
     path('api/', include('authorization.urls', namespace='authorization')),
+    path('api/', include('catalog.urls', namespace='catalog')),
     path('api/', include('common.location.urls', namespace='location')),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+

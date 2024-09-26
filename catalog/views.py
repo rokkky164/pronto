@@ -17,10 +17,10 @@ from utils.helpers import create_response, load_request_json_data, get_hostname_
 from utils.db_interactors import get_record_by_filters, get_record_by_id, get_single_record_by_filters, \
     get_select_related_object_list
 from .constants import (
-    ANSWER_SUBMISSION_SUCCESS,
-    PRODUCT_CREATE_SUCCESS
+    PRODUCT_CREATE_SUCCESS,
+    PRODUCT_LIST_SUCCESS
 )
-from .filtersets import ExamFilterSet, ExamCreationRequestFilterSet
+from .filtersets import ProductFilterSet
 from .models import (
     Product, Category, ProductVariant,
     ProductConfig, SupplierProducts,
@@ -29,10 +29,11 @@ from .models import (
     ShippingAndOrdering
 )
 from utils.paginations import StandardResultsSetPagination
+from .db_interactors import db_get_all_products
 from .permissions import ProductPermission
 from .serializers import (
-	ProductCreateSerializer, ProductListSerializer, ManufacturerSerializer,
-	ProductReviewSerializer
+	ProductCreateSerializer, ProductListSerializer, ProductDetailsSerializer, 
+    ManufacturerSerializer, ProductReviewSerializer
 )
 from .tasks import create_product
 
@@ -43,7 +44,7 @@ class ProductViewSet(GenericViewSet, CreateModelMixin, ListModelMixin, UpdateMod
     permission_classes = [ProductPermission]
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_class = ExamFilterSet
+    filterset_class = ProductFilterSet
     ordering_fields = ['name', 'valid_to', 'duration', 'valid_from', 'created_at', 'updated_at']
     ordering = ['valid_to']
     search_fields = ['name']
@@ -71,34 +72,8 @@ class ProductViewSet(GenericViewSet, CreateModelMixin, ListModelMixin, UpdateMod
         return True, exam
 
     def get_queryset(self, validated_data=None, exam=None):
-        if getattr(self, 'swagger_fake_view', False):
-            return Exam.objects.none()
-
         if self.action == 'list':
-            return db_get_all_exam_for_user(
-                user=self.request.user, exclude_examination=self.request.GET.getlist('exclude_examination', []),
-                self_own=self.request.GET.get('self_own', False))
-        elif self.action == 'mock_exam':
-            return get_record_by_filters(model=Exam, filters=(
-                    Q(examination_type=Exam.ExaminationType.MOCK) & ~Q(status=Exam.Status.DELETED)), Q_filtering=True,
-                                         distinct=True)
-        elif self.action == 'nation_wide_exam':
-            return db_get_nation_wide_exams(user=self.request.user, categorie=self.request.GET.get('categorie'))
-
-        elif self.action == 'exam_list_evaluation':
-            return db_get_exam_list_for_evaluation(user=self.request.user)
-        elif self.action == 'exam_count':
-            return db_get_exam_count(user=self.request.user)
-        elif self.action == 'completed_exam_list':
-            return db_get_completed_exam_for_user(
-                user=self.request.user, exclude_examination=self.request.GET.getlist('exclude_examination', []))
-        elif self.action == 'exam_list_calendar':
-            return db_get_exam_list_for_calender(user=self.request.user)
-        elif self.action == 'exam_users_list':
-            return get_select_related_object_list(model=ExamineeExamMap, filters={'exam': self.kwargs.get('pk')},
-                                                foreign_key_fields=['exam','student'])
-        elif self.action == 'batches_by_exam':
-            return db_get_batches_by_exam(exam=exam)
+            return db_get_all_products()
 
     def filter_queryset(self, queryset=None):
         for backend in list(self.filter_backends):
@@ -109,7 +84,7 @@ class ProductViewSet(GenericViewSet, CreateModelMixin, ListModelMixin, UpdateMod
         if self.action == 'create':
             return ProductCreateSerializer
         elif self.action == 'list':
-            return ProductListShortSerializer
+            return ProductListSerializer
         elif self.action == 'retrieve':
             return ProductDetailsSerializer
         elif self.action == 'update':
@@ -141,19 +116,16 @@ class ProductViewSet(GenericViewSet, CreateModelMixin, ListModelMixin, UpdateMod
 
     def list(self, request, *args, **kwargs):
         page = request.GET.get('page')
-        status, queryset = self.get_queryset()
-        if not status:
-            return create_response(message=exam_queryset)
-        queryset = self.filter_queryset(queryset=exam_queryset)
-        queryset = list(OrderedDict.fromkeys(exam_queryset))
+        queryset = self.get_queryset()
+        # if not status:
+        #     return create_response(message=exam_queryset)
+        # queryset = self.filter_queryset(queryset=exam_queryset)
         if page:
             exam_queryset = self.paginate_queryset(exam_queryset)
-        serializer = self.get_serializer(exam_queryset, many=True, context={
-                        'attempt_status': request.GET.get('attempt_status'), 'request': self.request, 
-                        'get_subjects': request.GET.get('get_subjects')})
+        serializer = self.get_serializer(queryset, many=True)
         if page:
             serializer = self.get_paginated_response(serializer.data)
-        return create_response(success=True, message=LIST_EXAM_SUCCESS, data=serializer.data)
+        return create_response(success=True, message=PRODUCT_LIST_SUCCESS, data=serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
         status, exam = self.get_object(*args, **kwargs)
@@ -211,7 +183,6 @@ class ProductReviewViewSet(ModelViewSet):
     permission_classes=[IsAuthenticated]
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_class = ExamCreationRequestFilterSet
     ordering_fields = ['id', 'exam__name', 'due_date']
     ordering = ['-due_date']
     search_fields = ['exam__name']
@@ -248,89 +219,3 @@ class ProductReviewViewSet(ModelViewSet):
             return create_response(message=CREATION_REQUEST_DOES_NOT_EXIST)
         return create_response(
             success=True, message=CREATION_REQUEST_FETCH_SUCCESS, data=ExamCreationRequestDetailSerializer(obj).data)
-
-
-class ExamV2ViewSet(GenericViewSet, CreateModelMixin, ListModelMixin, UpdateModelMixin, DestroyModelMixin):
-    permission_classes = [ExamPermission]
-    pagination_class = StandardResultsSetPagination
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    ordering_fields = ['name', 'valid_to', 'duration', 'valid_from', 'created_at', 'updated_at']
-    ordering = ['valid_to']
-    search_fields = ['name']
-
-    def get_object(self, *args, **kwargs):
-        if self.action in ['question_paper_by_exam', 'question_by_exam']:
-            status, exam = db_get_exam_for_qp(_id=self.kwargs.get('pk'))
-            if not status:
-                return False, exam
-            if not exam:
-                return False, EXAM_NOT_EXIST_ERROR
-            self.check_object_permissions(request=self.request, obj=exam)
-            return True, exam
-        status, exam = db_get_exam_v2(_id=self.kwargs.get('pk'))
-        if not status:
-            return False, exam
-        if not exam:
-            return False, EXAM_NOT_EXIST_ERROR
-        self.check_object_permissions(request=self.request, obj=exam)
-        return True, exam
-
-    def get_serializer_class(self):
-        if self.action == 'retrieve':
-            return ExamRetrieveV2Serializer
-
-        elif self.action == 'question_paper_by_exam':
-            return ExamQuestionPaperSerializer
-
-        elif self.action == 'question_by_exam':
-            return ExamQuestionSerializer
-
-    def get_queryset(self, exam=None):
-        if getattr(self, 'swagger_fake_view', False):
-            return Exam.objects.none()
-        elif self.action == 'question_paper_by_exam':
-            return db_get_question_paper_by_exam(_id=exam.question_paper.id)
-        elif self.action == 'question_by_exam':
-            return db_get_question_by_exam(exam=exam,
-                                            question_sets=exam.question_paper.question_sets.all())
-
-    def retrieve(self, request, *args, **kwargs):
-        status, exam = self.get_object(*args, **kwargs)
-        if not status:
-            return create_response(message=exam)
-        serializer_class = self.get_serializer_class()
-        serializer =serializer_class(exam, context=self.get_serializer_context())
-        return create_response(success=True, message=EXAM_DETAILS_FETCH_SUCCESS, data=serializer.data)
-
-
-    @action(detail=True, methods=['get'], url_name=QUESTION_PAPER_BY_EXAM_URL_NAME, url_path=QUESTION_PAPER_BY_EXAM_URL)
-    def question_paper_by_exam(self, request, *args, **kwargs):
-        status, exam = self.get_object(*args, **kwargs)
-        if not status:
-            return create_response(message=exam)
-        status, question_papar = self.get_queryset(exam=exam)
-        if not status:
-            return create_response(message=question_papar)
-        if not question_papar:
-            return create_response(success=True, message=QUESTION_PAPAER_BY_EXAM, data=[])
-        serializer_class = self.get_serializer_class()
-        serializer =serializer_class(question_papar, context={'exam': exam})
-        if not status:
-            return create_response(message=question_papar)
-        return create_response(success=True, message=QUESTION_PAPAER_BY_EXAM, data=serializer.data)
-
-
-    @action(detail=True, methods=['get'], url_name=QUESTION_BY_EXAM_URL, url_path=QUESTION_BY_EXAM_URL_NAME)
-    def question_by_exam(self, request, *args, **kwargs):
-        status, exam = self.get_object(*args, **kwargs)
-        if not status:
-            return create_response(message=exam)
-        status, queryset = self.get_queryset(exam=exam)
-        if not status:
-            return create_response(message=queryset)
-        if not queryset:
-            return create_response(success=True, message=QUESTION_BY_EXAM, data=[])
-        serializer = self.get_serializer(queryset, many=True)
-        if not status:
-            return create_response(message=queryset)
-        return create_response(success=True, message=QUESTION_BY_EXAM, data=serializer.data)

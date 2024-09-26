@@ -2,9 +2,6 @@ import logging
 
 from django.utils.timezone import now, timedelta
 
-from catalog.constants import (
-    ACCOUNT_ACTIVATION_MAIL_MESSAGE, ACCOUNT_ACTIVATION_MAIL_SUBJECT, RESEND_VERIFICATION_MAIL_TAG
-)
 from catalog.models import (
     Product, Category, ProductVariant,
     ProductConfig, SupplierProducts,

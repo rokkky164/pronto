@@ -264,11 +264,6 @@ def get_image_path(image=None):
     return f'/media/{image}' if image else None
 
 
-# Bulk upload
-def check_for_duplicate_usernames(usernames):
-    return len(usernames) != len(set(usernames))
-
-
 def get_unique_mailgun_message_id(module: str, hostname: str = None) -> str:
     return f'{module}-{datetime.timestamp(datetime.now())}@{hostname}'
 
@@ -278,7 +273,7 @@ def remove_spaces_and_format_string(string_: str) -> str:
 
 
 def get_bucket(bucket_name) -> storage.bucket.Bucket:
-    file_path = f"/home/user/pronto/prep-study-eac899977c9b.json"
+    file_path = f"/home/user/pronto/pronto-eac899977c9b.json"
 
     storage_client = storage.Client.from_service_account_json(file_path)
     bucket = storage_client.bucket(bucket_name)
