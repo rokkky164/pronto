@@ -52,51 +52,11 @@ class ProductListSerializer(ModelSerializer):
             return get_image_path(prod_image_obj.image)
 
 
-class ProductDetailsSerializer(ModelSerializer):
-    name = CharField(required=True)
-    description = CharField(required=True)
-    advance_payment = CharField(required=False)
-    shelf_life = CharField(required=True)
-    packaging_details = CharField(required=True)
-    grade = CharField(required=False)
-    bar_code = CharField(required=True)
-    bar_code_type = CharField(required=True)
-    is_private_label_available = BooleanField(default=False)
-    manufacturer_name = CharField(source='manufacturer.name')
-    supplier_name = SerializerMethodField()
-    supplier_address = SerializerMethodField()
-    image = CharField(required=False)
-
-    class Meta:
-        model = Product
-        fields = (
-            'id', 'name', 'description', 'advance_payment', 'shelf_life', 
-            'packaging_details', 'grade', 'bar_code', 'bar_code_type',
-            'is_private_label_available', 'manufacturer_name', 'supplier_name',
-            'supplier_address', 'image'
-        )
-
-    def get_supplier_name(self, obj):
-        _, supplier_obj = get_single_record_by_filters(SupplierProducts, filters={'product_id': obj.id})
-        if isinstance(supplier_obj, SupplierProducts):
-            return supplier_obj.name
-
-    def get_supplier_address(self, obj):
-        _, supplier = get_single_record_by_filters(CompanyInformation, filters={'product_id': obj.id})
-        if isinstance(supplier, CompanyInformation):
-            return supplier.legal_address
-
-    def get_image(self, obj):
-        _, prod_image_obj = get_single_record_by_filters(ProductImages, filters={'product_id': obj.id})
-        if isinstance(prod_image_obj, ProductImages):
-            return get_image_path(prod_image_obj.image)
-
-
 class ManufacturerSerializer(ModelSerializer):
 
     class Meta:
         model = Manufacturer
-        exclude = ('created', 'updated')
+        fields = '__all__'
 
 
 class ProductReviewSerializer(ModelSerializer):
@@ -125,3 +85,49 @@ class ShippingAndOrderingSerializer(ModelSerializer):
     class Meta:
         model = ShippingAndOrdering
         fields = '__all__'
+
+
+class ProductDetailsSerializer(ModelSerializer):
+    name = CharField(required=True)
+    description = CharField(required=True)
+    advance_payment = CharField(required=False)
+    shelf_life = CharField(required=True)
+    packaging_details = CharField(required=True)
+    grade = CharField(required=False)
+    bar_code = CharField(required=True)
+    bar_code_type = CharField(required=True)
+    is_private_label_available = BooleanField(default=False)
+    manufacturer_name = CharField(source='manufacturer.name')
+    supplier_name = SerializerMethodField()
+    supplier_address = SerializerMethodField()
+    image = SerializerMethodField()
+    manufacturer = ManufacturerSerializer()
+    shipping_data = SerializerMethodField()
+
+    class Meta:
+        model = Product
+        fields = (
+            'id', 'name', 'description', 'advance_payment', 'shelf_life', 
+            'packaging_details', 'grade', 'bar_code', 'bar_code_type',
+            'is_private_label_available', 'manufacturer_name', 'supplier_name',
+            'supplier_address', 'image', 'manufacturer', 'shipping_data'
+        )
+
+    def get_supplier_name(self, obj):
+        _, supplier_obj = get_single_record_by_filters(SupplierProducts, filters={'product_id': obj.id})
+        if isinstance(supplier_obj, SupplierProducts):
+            return supplier_obj.name
+
+    def get_supplier_address(self, obj):
+        _, supplier = get_single_record_by_filters(CompanyInformation, filters={'product_id': obj.id})
+        if isinstance(supplier, CompanyInformation):
+            return supplier.legal_address
+
+    def get_image(self, obj):
+        _, prod_image_obj = get_single_record_by_filters(ProductImages, filters={'product_id': obj.id})
+        if isinstance(prod_image_obj, ProductImages):
+            return get_image_path(prod_image_obj.image)
+
+    def get_shipping_data(self, obj):
+        _, shipping_object = get_single_record_by_filters(ShippingAndOrdering, filters={'product_id': obj.id})
+        return ShippingAndOrderingSerializer(shipping_object).data
