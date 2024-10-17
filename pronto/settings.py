@@ -44,7 +44,6 @@ SECRET_KEY = 'django-insecure-in%twu1$pc()je&1-=l07=1fc4@wmp4h)w(m!0qi!r7e$g9$3d
 DEBUG = True
 DEVELOPMENT_MODE = env("DEVELOPMENT_MODE", default="False") == "True"
 ALLOWED_HOSTS = env('ALLOWED_HOSTS', default='127.0.0.1,localhost').split(',')
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -55,6 +54,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_extensions',
+    'rest_framework',
     # developed apps
     'accounts',
     'authorization',
@@ -64,14 +64,14 @@ INSTALLED_APPS = [
     'notification',
     'utils',
     # 3rd party apps
-    'corsheaders'
+    # 'corsheaders'
 ]
 
 MIDDLEWARE = [
+    # 'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -175,7 +175,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://www.tradepronto.com"
 ]
 
-CORS_ORIGIN_ALLOW_ALL = True
+# CORS_ORIGIN_ALLOW_ALL = True
 
 DEFAULT_FROM_EMAIL = "roshan@pinakasolutions.com"
 SERVER_EMAIL = "roshan@pinakasolutions.com"
