@@ -1,7 +1,7 @@
 from rest_framework.serializers import Serializer, ModelSerializer, CharField, ChoiceField, IntegerField, EmailField, \
     SlugRelatedField, FileField, SerializerMethodField, BooleanField
 
-from accounts.models import CompanyInformation
+from accounts.models import Company
 from utils.db_interactors import get_record_by_filters, get_record_by_id, get_single_record_by_filters, \
     get_select_related_object_list
 from utils.helpers import get_image_path
@@ -42,8 +42,8 @@ class ProductListSerializer(ModelSerializer):
             return supplier_obj.name
 
     def get_supplier_address(self, obj):
-        _, supplier = get_single_record_by_filters(CompanyInformation, filters={'product_id': obj.id})
-        if isinstance(supplier, CompanyInformation):
+        _, supplier = get_single_record_by_filters(Company, filters={'product_id': obj.id})
+        if isinstance(supplier, Company):
             return supplier.legal_address
 
     def get_image(self, obj):
@@ -119,8 +119,8 @@ class ProductDetailsSerializer(ModelSerializer):
             return supplier_obj.name
 
     def get_supplier_address(self, obj):
-        _, supplier = get_single_record_by_filters(CompanyInformation, filters={'product_id': obj.id})
-        if isinstance(supplier, CompanyInformation):
+        _, supplier = get_single_record_by_filters(Company, filters={'product_id': obj.id})
+        if isinstance(supplier, Company):
             return supplier.legal_address
 
     def get_image(self, obj):

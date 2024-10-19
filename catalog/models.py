@@ -96,7 +96,7 @@ class ProductConfig(Model):
 
 class SupplierProducts(Model):
 	product = ForeignKey(Product, on_delete=models.CASCADE)
-	supplier = ForeignKey('accounts.CompanyInformation', on_delete=models.CASCADE)
+	supplier = ForeignKey('accounts.Company', on_delete=models.CASCADE)
 
 
 class ProductReview(Model):

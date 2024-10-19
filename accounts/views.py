@@ -67,11 +67,11 @@ from accounts.utils import get_device_type
 #     db_get_user_list,
 # )
 from accounts.models import (
-    User, DeleteUserAccountRequest, CompanyInformation, AccountManager
+    User, DeleteUserAccountRequest, Company, AccountManager
 )
 from accounts.permissions import UserPermission, CanChangeEmail, IsActive
 from accounts.serializers import (
-    CompanyInformationSerializer,
+    CompanySerializer,
     AccountManagerSerializer,
     AccountManagerDetailsSerializer,
     PasswordChangeSerializer,
@@ -100,14 +100,14 @@ from utils.paginations import StandardResultsSetPagination
 logger = logging.getLogger(__name__)
 
 
-class CompanyInformationView(generics.GenericAPIView):
-    queryset = CompanyInformation.objects.all()
+class CompanyView(generics.GenericAPIView):
+    queryset = Company.objects.all()
     permission_classes = (AllowAny,)
     authentication_classes = []
-    serializer_class = CompanyInformationSerializer
+    serializer_class = CompanySerializer
 
     def get_object(self, *args, **kwargs):
-        return get_record_by_id(model=CompanyInformation, _id=self.kwargs.get('company_info_id'))
+        return get_record_by_id(model=Company, _id=self.kwargs.get('company_info_id'))
 
     def get(self, request, *args, **kwargs):
         """
@@ -160,6 +160,7 @@ class AccountManagerDetailsView(generics.GenericAPIView):
         request_data = request.data.copy()
         hostname = request.headers.get('origin', None)
         hostname = hostname.split('//')[-1] if hostname else request.get_host()
+        company = get_record_by_id(model=Company, _id=self.kwargs.get('manager_id'))
         request_data = {
             'first_name': request_data['first_name'],
             'last_name': request_data['last_name'],

@@ -103,6 +103,7 @@ class ProductViewSet(GenericViewSet, CreateModelMixin, ListModelMixin, UpdateMod
         return create_response(message=PRODUCT_CREATE_SUCCESS, success=True, data={'exam': response})
 
     def list(self, request, *args, **kwargs):
+        import pdb;pdb.set_trace()
         page = request.GET.get('page')
         queryset = self.get_queryset()
         # if not status:

@@ -23,7 +23,7 @@ from accounts.constants import (
     INVALID_MOBILE_NUMBER, INACTIVATED_ACCOUNT,
     NEW_PASSWORD_SAME_AS_CURRENT_PASSWORD, EMAIL_IS_REGISTERED, NUMBER_IS_REGISTERED
 )
-from accounts.models import User, Address, CompanyInformation, AccountManager, CertificateDocument, DeleteUserAccountRequest
+from accounts.models import User, Address, Company, AccountManager, CertificateDocument, DeleteUserAccountRequest
 from accounts.tasks import check_and_update_user_delete_request_task, initiate_account_verification
 from accounts.utils import match_re, generate_username
 from accounts.db_interactors import db_update_password
@@ -41,17 +41,17 @@ from utils.db_interactors import get_record_by_id, get_single_record_by_filters,
 logger = getLogger(__name__)
 
 
-class CompanyInformationSerializer(ModelSerializer):
+class CompanySerializer(ModelSerializer):
     
     class Meta:
-        model = CompanyInformation
+        model = Company
         fields = ('name', 'tax_id', 'annual_turnover', 'hq_location', 'other_hubs', 'company_type',
                   'product_categories', 'vat_payer', 'legal_address'
                 )
 
     def create(self, validated_data):
-        status, company_information = db_create_record(
-            model=CompanyInformation,
+        status, company = db_create_record(
+            model=Company,
             data={
                 'name': validated_data['name'],
                 'tax_id': validated_data['tax_id'],
@@ -64,7 +64,7 @@ class CompanyInformationSerializer(ModelSerializer):
                 'legal_address': validated_data['legal_address']
             }
         )
-        return status, company_information
+        return status, company
 
 
 class AccountManagerSerializer(Serializer):

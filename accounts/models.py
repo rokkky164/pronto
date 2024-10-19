@@ -156,7 +156,7 @@ class DeleteUserAccountRequest(Model):
         return f"{self.pk}: {self.user}"
 
 
-class CompanyInformation(Model):
+class Company(Model):
     class AnnualTurnover(TextChoices):
         TILL_5M = 'TILL_5M', _('0-5M')
         FIVEM_TO_TWENTYM = 'FIVEM_TO_TWENTYM', _('5M-20M')
@@ -165,7 +165,7 @@ class CompanyInformation(Model):
         ONEBILLION_PLUS   = 'ONEBILLION_PLUS', _('1B+')
 
     name = CharField(_('Company Name'), max_length=100)
-    tax_id = CharField(_('Tax Identification Number'), max_length=100)
+    tax_id = CharField(_('Tax Identification Number'), max_length=100, unique=True)
     annual_turnover = CharField(_('Annual Turnover'), max_length=50, choices=AnnualTurnover.choices)
     hq_location = CharField(_('Headquarter Location'), max_length=50)
     company_type = CharField(_('Company Type'), max_length=100)
@@ -182,7 +182,7 @@ class AccountManager(Model):
     user = ForeignKey(User, on_delete=CASCADE)
     title = CharField(_('Title'), max_length=100)
     department = CharField(_('Department'), max_length=100)
-    company_info = ForeignKey(CompanyInformation, on_delete=models.CASCADE)
+    company_info = ForeignKey(Company, on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.user.username}:{self.company_info.name}"
