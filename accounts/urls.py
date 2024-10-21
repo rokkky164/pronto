@@ -19,7 +19,7 @@ app_name = APP_NAME
 
 urlpatterns = [
 	path('auth/company-information', CompanyView.as_view(), name=COMPANY_INFORMATION_URL_NAME),
-	path('auth/company-information/<company_info_id>', CompanyView.as_view(), name=COMPANY_INFORMATION_URL_NAME),
+	path('auth/company-information/<company_id>', CompanyView.as_view(), name=COMPANY_INFORMATION_URL_NAME),
 	path('auth/account-mgr-details', AccountManagerDetailsView.as_view(), name=ACCOUNT_MANAGER_DETAILS_URL_NAME),
 	path('auth/account-mgr-details/<manager_id>', AccountManagerDetailsView.as_view(), name=ACCOUNT_MANAGER_DETAILS_URL_NAME),
 	path('auth/login', CustomLoginView.as_view(), name=LOGIN_URL_NAME),

@@ -107,16 +107,16 @@ class CompanyView(generics.GenericAPIView):
     serializer_class = CompanySerializer
 
     def get_object(self, *args, **kwargs):
-        return get_record_by_id(model=Company, _id=self.kwargs.get('company_info_id'))
+        return get_record_by_id(model=Company, _id=self.kwargs.get('company_id'))
 
     def get(self, request, *args, **kwargs):
         """
         View to get company info details
         """
-        status, company_information = self.get_object(*args, **kwargs)
+        status, company = self.get_object(*args, **kwargs)
         if not status:
             return create_response(message=COMPANY_INFORMATION_NOT_FOUND)
-        serializer = self.get_serializer(instance=company_information)
+        serializer = self.get_serializer(instance=company)
         return create_response(success=True, message=COMPANY_INFORMATION_FETCH_SUCCESS, data=serializer.data)
     
     @atomic()
@@ -160,7 +160,7 @@ class AccountManagerDetailsView(generics.GenericAPIView):
         request_data = request.data.copy()
         hostname = request.headers.get('origin', None)
         hostname = hostname.split('//')[-1] if hostname else request.get_host()
-        company = get_record_by_id(model=Company, _id=self.kwargs.get('manager_id'))
+        company =  get_record_by_id(model=Company, tax_id=self.kwargs.get('tax_id'))
         request_data = {
             'first_name': request_data['first_name'],
             'last_name': request_data['last_name'],
@@ -168,7 +168,8 @@ class AccountManagerDetailsView(generics.GenericAPIView):
             'phone': request_data['phone'],
             'role': request_data['role'],
             'title': request_data['title'],
-            'department': request_data['department']
+            'department': request_data['department'],
+            'company_id': company.id
         }
         serializer = self.serializer_class(data=request_data, context={'host_name': hostname})
         if serializer.is_valid():

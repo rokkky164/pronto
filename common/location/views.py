@@ -33,8 +33,13 @@ class CountryListView(ListAPIView):
     authentication_classes = []
     
     def list(self, request, *args, **kwargs):
-        res = super().list(request, *args, **kwargs)
-        return create_response(success=True, message=COUNTRY_LIST_SUCCESS_MESSAGE, data=res.data)
+        # import pdb;pdb.set_trace()
+        page = request.GET.get('page')
+        serializer_class = self.get_serializer_class()
+        serializer = serializer_class(self.get_queryset(), many=True)
+        if page:
+            serializer = self.get_paginated_response(serializer.data)
+        return create_response(success=True, message=COUNTRY_LIST_SUCCESS_MESSAGE, data=serializer.data)
 
 
 class StateFilterSet(rest_framework.FilterSet):
