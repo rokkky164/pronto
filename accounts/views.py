@@ -160,7 +160,7 @@ class AccountManagerDetailsView(generics.GenericAPIView):
         request_data = request.data.copy()
         hostname = request.headers.get('origin', None)
         hostname = hostname.split('//')[-1] if hostname else request.get_host()
-        company =  get_record_by_id(model=Company, tax_id=self.kwargs.get('tax_id'))
+        _, company =  get_single_record_by_filters(model=Company, filters={"tax_id": request_data.get('company_tax_id')})
         request_data = {
             'first_name': request_data['first_name'],
             'last_name': request_data['last_name'],

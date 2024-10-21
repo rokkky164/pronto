@@ -75,7 +75,7 @@ class AccountManagerSerializer(Serializer):
     role = CharField(required=True)
     title = CharField(required=True)
     department = CharField(required=True)
-    company_info = IntegerField(required=True)
+    company_id = IntegerField(required=True)
 
     def validate(self, attrs):
         if User.objects.filter(email=attrs['email']).exists():
@@ -101,7 +101,7 @@ class AccountManagerSerializer(Serializer):
                 'user': user,
                 'title': validated_data['title'],
                 'department': validated_data['department'],
-                'company_info': validated_data['company_info']
+                'company_id': validated_data['company_id']
             }
         )
         return account_manager_status, account_manager
