@@ -169,13 +169,15 @@ class Company(Model):
     annual_turnover = CharField(_('Annual Turnover'), max_length=50, choices=AnnualTurnover.choices)
     hq_location = CharField(_('Headquarter Location'), max_length=50)
     company_type = CharField(_('Company Type'), max_length=100)
-    other_hubs = ArrayField(CharField(max_length=50), null=True, default=list)
+    other_hubs = ArrayField(CharField(max_length=50), blank=True, default=list)
     product_categories = ArrayField(CharField(max_length=50), null=True, default=list)
-    vat_payer = CharField(_('Vat Payer'), max_length=100)
+    vat_payer = CharField(_('Vat Payer'), max_length=100, null=True, blank=True)
     legal_address = CharField(_('Legal Address'), max_length=255)
+    country = ForeignKey(Country, on_delete=models.PROTECT, null=False, blank=False)
+    phone = CharField(_('Phone'), max_length=20, null=True, blank=True)
 
-    def __str__(self):
-        return f"{self.pk}: {self.name}"
+    class Meta:
+        unique_together = ('name', 'tax_id', 'country', 'phone')
 
 
 class AccountManager(Model):
