@@ -43,15 +43,16 @@ logger = getLogger(__name__)
 
 class CompanySerializer(ModelSerializer):
     company_phone = CharField(required=True)
+    country_id = IntegerField(required=True)
 
     class Meta:
         model = Company
         fields = ('name', 'tax_id', 'annual_turnover', 'hq_location', 'other_hubs', 'company_type',
-                  'product_categories', 'vat_payer', 'legal_address', 'country', 'company_phone'
+                  'product_categories', 'vat_payer', 'legal_address', 'country_id', 'company_phone'
                 )
 
     def create(self, validated_data):
-        _, country = get_record_by_id(model=Country, _id=validated_data['country'])
+        _, country = get_record_by_id(model=Country, _id=validated_data['country_id'])
         status, company = db_create_record(
             model=Company,
             data={

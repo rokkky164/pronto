@@ -169,7 +169,7 @@ class Company(Model):
     annual_turnover = CharField(_('Annual Turnover'), max_length=50, choices=AnnualTurnover.choices)
     hq_location = CharField(_('Headquarter Location'), max_length=50)
     company_type = CharField(_('Company Type'), max_length=100)
-    other_hubs = ArrayField(CharField(max_length=50), blank=True, default=list)
+    other_hubs = ArrayField(CharField(max_length=50, null=True, blank=True), blank=True, default=list)
     product_categories = ArrayField(CharField(max_length=50), null=True, default=list)
     vat_payer = CharField(_('Vat Payer'), max_length=100, null=True, blank=True)
     legal_address = CharField(_('Legal Address'), max_length=255)

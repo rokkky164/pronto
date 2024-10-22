@@ -213,3 +213,8 @@ REST_FRAMEWORK = {
 
 IMAGE_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png']
 MAX_PRODUCT_IMAGE_SIZE = 10000000  # 10 MB
+
+# Celery
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
